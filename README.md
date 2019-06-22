@@ -1,4 +1,9 @@
-# goodreads-sh
+<h1 align="center">goodreadsh</h1>
+<p align="center">Command line interface for <a href="https://goodreads.com" > Goodreads</a></p>
+<p align="center">
+<a href="https://i.imgur.com/der2fH7.gif"><img src="https://i.imgur.com/der2fH7.gif" width="600"/></a>
+</p>
+
 Command line interface for [Goodreads](https://www.goodreads.com/). Focuses on letting you quickly update your current reading activity, and giving you quick access to what your friends are reading.
 
 --- 
@@ -28,3 +33,6 @@ Your config file should already be present in your home dir `~/.goodreads.conf` 
 
 `coming soon`
 
+## Credit
+
+- Kudos to [Danish Prakash](https://github.com/danishprakash/) for his implementation, [`goodreadsh`](https://github.com/danishprakash/goodreadsh), which I used and learned from while I developed this CLI. 🙏
