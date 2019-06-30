@@ -2,11 +2,15 @@ use structopt::StructOpt;
 use config;
 use oauth1::Token;
 use reqwest::Client;
+use serde::{Serialize, Deserialize};
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
 use std::io::stdin;
 use url::form_urlencoded;
+
+use toml::Value;
 
 extern crate dirs;
 
@@ -29,19 +33,21 @@ enum Cli {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+struct GoodReadsConfig {
+    developer_key: String,
+    developer_secret: String,
+    access_token: Option<String>,
+    access_token_secret: Option<String>,
+}
+
 #[derive(Debug)]
 struct OAuthAccessToken {
     token: String,
     token_secret: String,
 }
 
-fn load_client_config() -> config::Config {
-    let home_directory: PathBuf = dirs::home_dir()
-        .expect("Could not determined home directory.");
-    let mut config_file_path = PathBuf::new();
-    config_file_path.push(home_directory);
-    config_file_path.push(".goodreads");
-
+fn load_client_config(config_file_path: PathBuf) -> config::Config {
     let mut settings  = config::Config::default();
     settings.merge( config::File::from(config_file_path)).unwrap();
     settings
@@ -142,13 +148,42 @@ fn get_oauth_token(client_id: String, client_secret: String) -> OAuthAccessToken
     }
 }
 
+fn add_access_token_to_config(client_config_path: PathBuf, oauth_access_token: &OAuthAccessToken) {
+    let value = fs::read_to_string(client_config_path.clone()).unwrap();
+
+    let mut config: GoodReadsConfig = toml::from_str(&value).unwrap();
+    config.access_token = Some(oauth_access_token.token.clone());
+    config.access_token_secret = Some(oauth_access_token.token_secret.clone());
+
+    let toml = toml::to_string(&config).unwrap();
+    fs::write(client_config_path, toml).unwrap();
+}
+
+fn client_config_path() -> PathBuf {
+    let home_directory: PathBuf = dirs::home_dir()
+        .expect("Could not determined home directory.");
+    let mut config_file_path : PathBuf = PathBuf::new();
+    config_file_path.push(home_directory);
+    config_file_path.push(".goodreads.toml");
+    config_file_path
+}
+
 fn main() {
     let args = Cli::from_args();
-    let cfg: config::Config = load_client_config();
+
+    let cfg: config::Config = load_client_config(client_config_path());
 
     let dev_key : String = cfg.get_str("developer_key").unwrap();
     let dev_secret: String = cfg.get_str("developer_secret").unwrap();
-    let oauth_access_token = get_oauth_token(dev_key, dev_secret);
+    let access_token: Result<String, _> = cfg.get_str("access_token");
+    let access_token_secret: Result<String, _> = cfg.get_str("access_token_secret");
 
-    println!("{:?}", oauth_access_token);
+    // TODO(Jonathon): Check for both access_token and access_token_secret
+    match access_token {
+        Ok(val) => println!("Found access token, all good!"),
+        Err(err) => {
+            let oauth_access_token = get_oauth_token(dev_key, dev_secret);
+            add_access_token_to_config(client_config_path(), &oauth_access_token)
+        }
+    }
 }

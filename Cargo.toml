@@ -13,5 +13,7 @@ dirs = "2.0.1"
 oauth1 = { git = "https://github.com/mehcode/oauth1-rs", branch = "master" }
 rand = "0.7.0"
 reqwest = "0.9.18"
+serde = "1.0.94"
 structopt = "0.2.10"
+toml = "0.5.1"
 url = "1.7.2"
