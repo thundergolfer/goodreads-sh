@@ -35,10 +35,15 @@ goodreads = OAuth1Service(
 # head_auth=True is important here; this doesn't work with oauth2 for some reason
 request_token, request_token_secret = goodreads.get_request_token(header_auth=True)
 
-authorize_url = goodreads.get_authorize_url(request_token)
+authorize_url = goodreads.get_authorize_url(request_token, redirect_uri="oob")
 print('Visit this URL in your browser: ' + authorize_url)
 accepted = 'n'
 while accepted.lower() == 'n':
     # you need to access the authorize_link via a browser,
     # and proceed to manually authorize the consumer
     accepted = input('Have you authorized me? (y/n) ')
+
+session = goodreads.get_auth_session(request_token, request_token_secret)
+
+print(session.access_token)
+print(session.access_token_secret)
