@@ -19,12 +19,13 @@
 `coming soon`
 
 #### [Required] Developer key
-`goodreadsh` requires your developer key in order to use the goodreads API, obtaining one is fairly trivial.
+`goodreadsh` requires your developer key and developer secret in order to read-write to the goodreads API. Obtaining them is fairly trivial.
 
-1. Access your developer key [here](https://www.goodreads.com/api/keys).
-2. Copy your developer key over to `goodreadsh`'s config file. `~/.goodreads.toml`
+1. Access your developer key and secret [here](https://www.goodreads.com/api/keys).
+2. Copy your developer key and secret over to `goodreads-sh`'s config file. `~/.goodreads.toml`
 ```sh
-DEVELOPER_KEY="<your_key_here>"
+developer_key = "<your_key_here>"
+developer_secret = "<your_secret_here>"
 ```
 
 Your config file should already be present in your home dir `~/.goodreads.toml` and if it's not, then run the command once without any options or create the file manually.
