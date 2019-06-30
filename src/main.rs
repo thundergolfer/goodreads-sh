@@ -5,12 +5,7 @@ use reqwest::Client;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::io::{stdin, BufRead, BufReader, Write};
-use std::net::TcpListener;
-//use oauth2::{AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge, RedirectUrl, TokenUrl, Scope, TokenResponse};
-//use oauth2::basic::BasicClient;
-//use oauth2::curl::http_client;
-use url::Url;
+use std::io::stdin;
 use url::form_urlencoded;
 
 extern crate dirs;
@@ -77,7 +72,6 @@ fn get_oauth_token(client_id: String, client_secret: String) -> OAuthAccessToken
     let auth_url = "https://www.goodreads.com/oauth/authorize";
     let request_token_url = "https://www.goodreads.com/oauth/request_token";
     let token_url = "https://www.goodreads.com/oauth/access_token";
-//    let redirect_url = Url::parse("urn:ietf:wg:oauth:2.0:oob").unwrap();
 
     let mut extra_params: HashMap<&str, Cow<str>> = HashMap::new();
     let consumer_token = Token::new(client_id, client_secret);
@@ -132,7 +126,7 @@ fn get_oauth_token(client_id: String, client_secret: String) -> OAuthAccessToken
 
     let token_url_with_oauth = format!("{}?{}", token_url, oauth_query_string);
 
-    let mut res = client
+    let res = client
         .get(&token_url_with_oauth)
         .send().unwrap().text().unwrap();
 

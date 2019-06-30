@@ -10,7 +10,6 @@ edition = "2018"
 base64 = "0.10.1"
 config = "0.9.3"
 dirs = "2.0.1"
-#oauth2 = "3.0.0-alpha.2"
 oauth1 = { git = "https://github.com/mehcode/oauth1-rs", branch = "master" }
 rand = "0.7.0"
 reqwest = "0.9.18"
