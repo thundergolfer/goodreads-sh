@@ -24,9 +24,9 @@ enum Cli {
     /// TODO: Add a help msg here for Author
     Author {
     },
-    #[structopt(name = "user")]
+    #[structopt(name = "update")]
     /// TODO: Add a help msg here for User
-    User {
+    Update {
         #[structopt(short = "a")]
         all: bool
     },
@@ -173,9 +173,11 @@ fn client_config_path() -> PathBuf {
 
 fn run_command(args: &Cli) {
     match *args {
-        Cli::Book { } => println!("Book cmd selected"),
-        Cli::Author { } => println!("Author cmd selected"),
-        Cli::User { .. } => println!("User cmd selected"),
+        Cli::Update { .. } => {
+            println!("update cmd selected");
+        },
+        Cli::Book { } => println!("'book' not yet implemented"),
+        Cli::Author { } => println!("'author' not yet implemented."),
         Cli::Authenticate { } => println!("Already authenticated.")
     }
 }
