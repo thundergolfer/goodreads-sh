@@ -194,10 +194,10 @@ fn main() {
 
     // TODO(Jonathon): Check for both access_token and access_token_secret
     match access_token {
-        Ok(val) => {
+        Ok(_val) => {
             run_command(&args);
         }
-        Err(err) => {
+        Err(_err) => {
             match args {
                 Cli::Authenticate { } => {
                     let oauth_access_token = get_oauth_token(dev_key, dev_secret);
