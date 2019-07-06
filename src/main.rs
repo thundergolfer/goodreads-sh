@@ -178,10 +178,42 @@ fn client_config_path() -> PathBuf {
     config_file_path
 }
 
-fn run_command(args: &Cli) {
+fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
     match *args {
         Cli::Update { .. } => {
-            println!("update cmd selected");
+            let url = "https://www.goodreads.com/shelf/add_to_shelf.xml";
+            let app_params = vec![
+                (String::from("name"), String::from("to-read")),
+                (String::from("book_id"), String::from("631932"))
+            ];
+            let app_params_map: HashMap<&str, Cow<str>> = app_params
+                .into_iter()
+                .map(|key_val| (key_val.0.as_str(), Cow::from(key_val.1)))
+                .collect();
+            let oauth_header_str = oauth1::authorize(
+                "POST",
+                url,
+                &Token::new(
+                    app_config.developer_key.clone(),
+                    app_config.developer_secret.clone()
+                ),
+                Some(&Token::new(
+                    app_config.access_token.as_ref().expect("Access token should never be None here").clone(),
+                    app_config.access_token_secret.as_ref().expect("Access token should never be None here").clone()
+                )),
+                Some(app_params_map),
+            );
+            let mut form_params = oauth_header_string_to_form_data(
+                &oauth_header_str
+            );
+            form_params.extend(app_params);
+            // This will POST a body of `foo=bar&baz=quux`
+            let client = reqwest::Client::new();
+            let res = client.post(url)
+                .form(&form_params)
+                .send().unwrap();
+
+            println!("{:?}", res);
         },
         Cli::Book { } => println!("'book' not yet implemented"),
         Cli::Author { } => println!("'author' not yet implemented."),
@@ -196,13 +228,19 @@ fn main() {
 
     let dev_key : String = cfg.get_str("developer_key").unwrap();
     let dev_secret: String = cfg.get_str("developer_secret").unwrap();
-    let access_token: Result<String, _> = cfg.get_str("access_token");
-    let access_token_secret: Result<String, _> = cfg.get_str("access_token_secret");
+    let access_token_res: Result<String, _> = cfg.get_str("access_token");
+    let access_token_secret_res: Result<String, _> = cfg.get_str("access_token_secret");
 
     // TODO(Jonathon): Check for both access_token and access_token_secret
-    match access_token {
-        Ok(_val) => {
-            run_command(&args);
+    match access_token_res {
+        Ok(access_token) => {
+            let app_config = GoodReadsConfig {
+                developer_secret: dev_secret,
+                developer_key: dev_key,
+                access_token_secret: Some(access_token_secret_res.unwrap()),
+                access_token: Some(access_token),
+            };
+            run_command(&args, &app_config);
         }
         Err(_err) => {
             match args {
