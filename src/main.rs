@@ -56,23 +56,30 @@ fn load_client_config(config_file_path: PathBuf) -> config::Config {
     settings
 }
 
-/// Goodreads.com weirdly wants the OAuth content in a query string, so
-/// convert convert the header into a valid query string
-fn oauth_header_string_into_query_string(oauth_header: &str) -> String {
+/// Goodreads.com wants OAuth content in form data for POSTs (Is this typical?)
+fn oauth_header_string_to_form_data(oauth_header: &str) -> Vec<(String, String)> {
     let oauth_header = &oauth_header[6..]; // remove the "OAuth " prefix
-
     let mut tokens: Vec<&str>;
-    let mut cleaned_pairs: Vec<String> = Vec::new();
+    let mut form_data: Vec<(String, String)> = Vec::new();
 
     for key_val_pair in oauth_header.split(", ") {
         tokens = key_val_pair.split("=").collect();
         // Remove quotes from value
         let val_len = tokens[1].len();
         tokens[1] = &tokens[1][1..val_len-1];
-        // Rejoin and append
-        let cleaned_pair = tokens.join("=").to_string();
-        cleaned_pairs.push(cleaned_pair);
+        form_data.push((tokens[0].to_owned(), tokens[1].to_owned()));
     }
+
+    form_data
+}
+
+/// Goodreads.com weirdly wants the OAuth content in a query string, so
+/// convert convert the header into a valid query string
+fn oauth_header_string_into_query_string(oauth_header: &str) -> String {
+    let cleaned_pairs: Vec<String> = oauth_header_string_to_form_data(oauth_header)
+        .into_iter()
+        .map(|pair| format!("{}={}", pair.0, pair.1))
+        .collect();
 
     cleaned_pairs.join("&")
 }
