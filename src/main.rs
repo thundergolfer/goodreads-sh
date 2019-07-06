@@ -10,10 +10,9 @@ use std::path::PathBuf;
 use std::io::stdin;
 use url::form_urlencoded;
 
-use toml::Value;
-
 extern crate dirs;
 
+#[derive(Debug)]
 #[derive(StructOpt)]
 #[structopt(name = "goodreads-sh", about = "CLI interface to Goodreads.com")]
 enum Cli {
@@ -30,6 +29,10 @@ enum Cli {
     User {
         #[structopt(short = "a")]
         all: bool
+    },
+    #[structopt(name = "auth")]
+    Authenticate {
+
     }
 }
 
@@ -168,6 +171,15 @@ fn client_config_path() -> PathBuf {
     config_file_path
 }
 
+fn run_command(args: &Cli) {
+    match *args {
+        Cli::Book { } => println!("Book cmd selected"),
+        Cli::Author { } => println!("Author cmd selected"),
+        Cli::User { .. } => println!("User cmd selected"),
+        Cli::Authenticate { } => println!("Already authenticated.")
+    }
+}
+
 fn main() {
     let args = Cli::from_args();
 
@@ -180,10 +192,17 @@ fn main() {
 
     // TODO(Jonathon): Check for both access_token and access_token_secret
     match access_token {
-        Ok(val) => println!("Found access token, all good!"),
+        Ok(val) => {
+            run_command(&args);
+        }
         Err(err) => {
-            let oauth_access_token = get_oauth_token(dev_key, dev_secret);
-            add_access_token_to_config(client_config_path(), &oauth_access_token)
+            match args {
+                Cli::Authenticate { } => {
+                    let oauth_access_token = get_oauth_token(dev_key, dev_secret);
+                    add_access_token_to_config(client_config_path(), &oauth_access_token)
+                }
+                _ => println!("OAuth not set up. Please run: goodreads-sh auth")
+            }
         }
     }
 }
