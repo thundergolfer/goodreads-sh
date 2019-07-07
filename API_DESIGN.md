@@ -69,6 +69,8 @@ Then the CLI will search and present the user matches like so:
 Then it could prompt for a selection from the numbered list and execute the update, or if the search failed
 prompt the user to try again.
 
+> ❗️: An alternative subcommand name could be "start"
+
 -----
 
 **2. See what friends are reading**
