@@ -3,7 +3,7 @@ use config;
 use oauth_client;
 use oauth1::Token;
 use reqwest::header::{HeaderValue};
-use reqwest::{Client, RequestBuilder, StatusCode};
+use reqwest::{Client, StatusCode};
 use serde::{Serialize, Deserialize};
 use std::borrow::Cow;
 use std::collections::HashMap;
