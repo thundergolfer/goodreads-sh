@@ -2,7 +2,6 @@ use structopt::StructOpt;
 use config;
 use oauth_client;
 use oauth1::Token;
-use oauthcli::*;
 use reqwest::header::{HeaderValue};
 use reqwest::{Client, RequestBuilder, StatusCode};
 use serde::{Serialize, Deserialize};
@@ -23,9 +22,9 @@ mod goodreads_api {
 #[derive(StructOpt)]
 #[structopt(name = "goodreads-sh", about = "CLI interface to Goodreads.com")]
 enum Cli {
-    #[structopt(name = "book")]
+    #[structopt(name = "add-to-shelf")]
     /// TODO: Add a help msg here for Book
-    Book {
+    AddToShelf {
     },
     #[structopt(name = "author")]
     /// TODO: Add a help msg here for Author
@@ -187,7 +186,7 @@ fn client_config_path() -> PathBuf {
 
 fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
     match *args {
-        Cli::Update { .. } => {
+        Cli::AddToShelf { } => {
             let consumer = oauth_client::Token::new(
                 app_config.developer_key.clone(),
                 app_config.developer_secret.clone(),
@@ -230,7 +229,9 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
                 Err(err) => println!("fuck: {}", err)
             }
         },
-        Cli::Book { } => println!("'book' not yet implemented"),
+        Cli::Update { .. } => {
+            println!("'update' not yet implemented");
+        },
         Cli::Author { } => println!("'author' not yet implemented."),
         Cli::Authenticate { } => println!("Already authenticated.")
     }
