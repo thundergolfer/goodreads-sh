@@ -1,6 +1,7 @@
 use structopt::StructOpt;
 use config;
 use oauth1::Token;
+use oauthcli::*;
 use reqwest::Client;
 use serde::{Serialize, Deserialize};
 use std::borrow::Cow;
@@ -190,7 +191,27 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
             for key_val in app_params.iter() {
                 app_params_map.insert(key_val.0.as_str(), Cow::from(key_val.1.clone()));
             }
+            let mut app_params_map2: HashMap<&str, Cow<str>> = HashMap::new();
+            for key_val in app_params.iter() {
+                app_params_map2.insert(key_val.0.as_str(), Cow::from(key_val.1.clone()));
+            }
             println!("{:?}", app_params_map);
+            let parsed_url = url::Url::parse("https://www.goodreads.com/shelf/add_to_shelf.xml").unwrap();
+            let header =
+                OAuthAuthorizationHeaderBuilder::new(
+                    "POST",
+                    &parsed_url,
+                    app_config.developer_key.clone(),
+                    app_config.developer_secret.clone(),
+                    SignatureMethod::HmacSha1
+                )
+                    .token(app_config.access_token.as_ref().expect("Access token should never be None here").clone(),
+                           app_config.access_token_secret.as_ref().expect("Access token should never be None here").clone())
+                    .request_parameters(app_params_map2)
+                    .finish();
+
+            println!("oauthcli: {}", header);
+
             let oauth_header_str = oauth1::authorize(
                 "POST",
                 url,
@@ -204,15 +225,21 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
                 )),
                 Some(app_params_map),
             );
-            let mut form_params = oauth_header_string_to_form_data(
+
+            println!("oauth1: {}", oauth_header_str);
+            let form_params = oauth_header_string_to_form_data(
                 &oauth_header_str
             );
-            form_params.extend(app_params);
-            println!("{:?}", form_params);
+            let mut full_params = vec![
+                (String::from("name"), String::from("to-read")),
+                (String::from("book_id"), String::from("631932"))
+            ];
+            full_params.extend(form_params);
+            println!("{:?}", full_params);
 
             let client = reqwest::Client::new();
             let res = client.post(url)
-                .form(&form_params)
+                .form(&full_params)
                 .send().unwrap();
 
             println!("{:?}", res);
