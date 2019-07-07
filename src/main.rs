@@ -1,8 +1,10 @@
 use structopt::StructOpt;
 use config;
+use oauth_client;
 use oauth1::Token;
 use oauthcli::*;
-use reqwest::Client;
+use reqwest::header::{HeaderValue};
+use reqwest::{Client, RequestBuilder, StatusCode};
 use serde::{Serialize, Deserialize};
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -12,6 +14,10 @@ use std::io::stdin;
 use url::form_urlencoded;
 
 extern crate dirs;
+
+mod goodreads_api {
+    pub const ADD_TO_SHELF: &'static str = "https://www.goodreads.com/shelf/add_to_shelf.xml";
+}
 
 #[derive(Debug)]
 #[derive(StructOpt)]
@@ -182,67 +188,47 @@ fn client_config_path() -> PathBuf {
 fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
     match *args {
         Cli::Update { .. } => {
-            let url = "https://www.goodreads.com/shelf/add_to_shelf.xml";
-            let app_params = vec![
-                (String::from("name"), String::from("to-read")),
-                (String::from("book_id"), String::from("631932"))
-            ];
-            let mut app_params_map: HashMap<&str, Cow<str>> = HashMap::new();
-            for key_val in app_params.iter() {
-                app_params_map.insert(key_val.0.as_str(), Cow::from(key_val.1.clone()));
-            }
-            let mut app_params_map2: HashMap<&str, Cow<str>> = HashMap::new();
-            for key_val in app_params.iter() {
-                app_params_map2.insert(key_val.0.as_str(), Cow::from(key_val.1.clone()));
-            }
-            println!("{:?}", app_params_map);
-            let parsed_url = url::Url::parse("https://www.goodreads.com/shelf/add_to_shelf.xml").unwrap();
-            let header =
-                OAuthAuthorizationHeaderBuilder::new(
-                    "POST",
-                    &parsed_url,
-                    app_config.developer_key.clone(),
-                    app_config.developer_secret.clone(),
-                    SignatureMethod::HmacSha1
-                )
-                    .token(app_config.access_token.as_ref().expect("Access token should never be None here").clone(),
-                           app_config.access_token_secret.as_ref().expect("Access token should never be None here").clone())
-                    .request_parameters(app_params_map2)
-                    .finish();
-
-            println!("oauthcli: {}", header);
-
-            let oauth_header_str = oauth1::authorize(
+            let consumer = oauth_client::Token::new(
+                app_config.developer_key.clone(),
+                app_config.developer_secret.clone(),
+            );
+            let access = oauth_client::Token::new(
+                app_config.access_token.as_ref().expect("Access token should never be None here").clone(),
+                app_config.access_token_secret.as_ref().expect("Access token secret should never be None here").clone()
+            );
+            let mut req_param = HashMap::new();
+            let _ = req_param.insert("name".into(), "to-read".into());
+            let _ = req_param.insert("book_id".into(), "9282".into());
+            let (header, body) = oauth_client::authorization_header(
                 "POST",
-                url,
-                &Token::new(
-                    app_config.developer_key.clone(),
-                    app_config.developer_secret.clone()
-                ),
-                Some(&Token::new(
-                    app_config.access_token.as_ref().expect("Access token should never be None here").clone(),
-                    app_config.access_token_secret.as_ref().expect("Access token should never be None here").clone()
-                )),
-                Some(app_params_map),
+                goodreads_api::ADD_TO_SHELF,
+                &consumer,
+                Some(&access),
+                Some(&req_param)
             );
-
-            println!("oauth1: {}", oauth_header_str);
-            let form_params = oauth_header_string_to_form_data(
-                &oauth_header_str
-            );
-            let mut full_params = vec![
-                (String::from("name"), String::from("to-read")),
-                (String::from("book_id"), String::from("631932"))
-            ];
-            full_params.extend(form_params);
-            println!("{:?}", full_params);
-
-            let client = reqwest::Client::new();
-            let res = client.post(url)
-                .form(&full_params)
-                .send().unwrap();
-
-            println!("{:?}", res);
+            let client = Client::new();
+            let req = client
+                .post(goodreads_api::ADD_TO_SHELF)
+                .header(
+                    reqwest::header::AUTHORIZATION,
+                    header
+                )
+                .header(
+                    reqwest::header::CONTENT_TYPE,
+                    HeaderValue::from_static("application/x-www-form-urlencoded")
+                )
+                .body(body);
+            let resp = req.send();
+            match resp {
+                Ok(result) => {
+                    if result.status() == StatusCode::CREATED {
+                        println!("win");
+                    } else {
+                        println!("fuck");
+                    }
+                },
+                Err(err) => println!("fuck: {}", err)
+            }
         },
         Cli::Book { } => println!("'book' not yet implemented"),
         Cli::Author { } => println!("'author' not yet implemented."),
