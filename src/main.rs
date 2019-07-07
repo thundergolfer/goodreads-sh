@@ -186,10 +186,11 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
                 (String::from("name"), String::from("to-read")),
                 (String::from("book_id"), String::from("631932"))
             ];
-            let app_params_map: HashMap<&str, Cow<str>> = app_params
-                .into_iter()
-                .map(|key_val| (key_val.0.as_str(), Cow::from(key_val.1)))
-                .collect();
+            let mut app_params_map: HashMap<&str, Cow<str>> = HashMap::new();
+            for key_val in app_params.iter() {
+                app_params_map.insert(key_val.0.as_str(), Cow::from(key_val.1.clone()));
+            }
+            println!("{:?}", app_params_map);
             let oauth_header_str = oauth1::authorize(
                 "POST",
                 url,
@@ -207,7 +208,8 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
                 &oauth_header_str
             );
             form_params.extend(app_params);
-            // This will POST a body of `foo=bar&baz=quux`
+            println!("{:?}", form_params);
+
             let client = reqwest::Client::new();
             let res = client.post(url)
                 .form(&form_params)
