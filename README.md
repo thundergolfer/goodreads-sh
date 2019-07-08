@@ -8,6 +8,8 @@
 
 --- 
 
+> ⚠️ **Notice:** This is only my 2nd Rust project, after [`slackify-markdown`](https://github.com/thundergolfer/slackify-markdown), and so while the project is functional the code is _not_ pretty.
+
 ## Installation
 
 #### Homebrew
