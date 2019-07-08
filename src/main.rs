@@ -14,6 +14,8 @@ use url::form_urlencoded;
 
 extern crate dirs;
 
+mod models;
+
 mod goodreads_api {
     pub const USER_ID: &'static str = "https://www.goodreads.com/api/auth_user";
     pub const LIST_SHELF: &'static str = "https://www.goodreads.com/review/list?v=2";
