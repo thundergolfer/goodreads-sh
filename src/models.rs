@@ -1,14 +1,14 @@
+use std::fmt::{self, Display, Formatter};
 use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
-use std::fmt::{self, Formatter, Display};
 
-use roxmltree::{Node};
+use roxmltree::Node;
 
 const MAX_DESC_LEN: usize = 20;
 
 pub struct Shelf {
-    pub books: Vec<Book>
+    pub books: Vec<Book>,
 }
 
 pub struct Book {
@@ -30,7 +30,6 @@ impl Display for Book {
     }
 }
 
-
 pub fn parse_shelf(shelf_xml: &str) -> Result<Shelf, roxmltree::Error> {
     let mut books: Vec<Book> = Vec::new();
     let doc = match roxmltree::Document::parse(shelf_xml) {
@@ -38,7 +37,7 @@ pub fn parse_shelf(shelf_xml: &str) -> Result<Shelf, roxmltree::Error> {
         Err(e) => {
             println!("Error: {}.", e);
             return Err(e);
-        },
+        }
     };
 
     for node in doc.descendants() {
@@ -80,7 +79,6 @@ fn book_from_xml_node(node: Node) -> Book {
     }
     b
 }
-
 
 #[cfg(test)]
 mod tests {

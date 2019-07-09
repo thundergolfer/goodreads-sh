@@ -1,15 +1,15 @@
-use structopt::StructOpt;
 use config;
-use oauth_client;
 use oauth1::Token;
-use reqwest::header::{HeaderValue};
+use oauth_client;
+use reqwest::header::HeaderValue;
 use reqwest::{Client, StatusCode};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
 use std::io::stdin;
+use std::path::PathBuf;
+use structopt::StructOpt;
 use url::form_urlencoded;
 
 extern crate dirs;
@@ -22,28 +22,23 @@ mod goodreads_api {
     pub const ADD_TO_SHELF: &'static str = "https://www.goodreads.com/shelf/add_to_shelf.xml";
 }
 
-#[derive(Debug)]
-#[derive(StructOpt)]
+#[derive(Debug, StructOpt)]
 #[structopt(name = "goodreads-sh", about = "CLI interface to Goodreads.com")]
 enum Cli {
     #[structopt(name = "add-to-shelf")]
     /// TODO: Add a help msg here for Book
-    AddToShelf {
-    },
+    AddToShelf {},
     #[structopt(name = "author")]
     /// TODO: Add a help msg here for Author
-    Author {
-    },
+    Author {},
     #[structopt(name = "update")]
     /// TODO: Add a help msg here for User
     Update {
         #[structopt(short = "a")]
-        all: bool
+        all: bool,
     },
     #[structopt(name = "auth")]
-    Authenticate {
-
-    }
+    Authenticate {},
 }
 
 #[derive(Serialize, Deserialize)]
@@ -52,7 +47,7 @@ struct GoodReadsConfig {
     developer_secret: String,
     access_token: Option<String>,
     access_token_secret: Option<String>,
-    user_id: Option<i64>
+    user_id: Option<i64>,
 }
 
 #[derive(Debug)]
@@ -62,8 +57,10 @@ struct OAuthAccessToken {
 }
 
 fn load_client_config(config_file_path: PathBuf) -> config::Config {
-    let mut settings  = config::Config::default();
-    settings.merge( config::File::from(config_file_path)).unwrap();
+    let mut settings = config::Config::default();
+    settings
+        .merge(config::File::from(config_file_path))
+        .unwrap();
     settings
 }
 
@@ -77,7 +74,7 @@ fn oauth_header_string_to_form_data(oauth_header: &str) -> Vec<(String, String)>
         tokens = key_val_pair.split("=").collect();
         // Remove quotes from value
         let val_len = tokens[1].len();
-        tokens[1] = &tokens[1][1..val_len-1];
+        tokens[1] = &tokens[1][1..val_len - 1];
         form_data.push((tokens[0].to_owned(), tokens[1].to_owned()));
     }
 
@@ -105,18 +102,16 @@ fn get_oauth_token(client_id: String, client_secret: String) -> OAuthAccessToken
     extra_params.insert("oauth_callback", Cow::from("oob"));
 
     let client = Client::new();
-    let res = client.get(request_token_url)
+    let res = client
+        .get(request_token_url)
         .header(
             reqwest::header::AUTHORIZATION,
-            oauth1::authorize(
-                "GET",
-                request_token_url,
-                &consumer_token,
-                None,
-                None,
-            )
+            oauth1::authorize("GET", request_token_url, &consumer_token, None, None),
         )
-        .send().unwrap().text().unwrap();
+        .send()
+        .unwrap()
+        .text()
+        .unwrap();
     let params: HashMap<String, String> = form_urlencoded::parse(&res.as_bytes())
         .into_owned()
         .collect();
@@ -132,7 +127,8 @@ fn get_oauth_token(client_id: String, client_secret: String) -> OAuthAccessToken
     loop {
         let mut answer = String::new();
 
-        stdin().read_line(&mut answer)
+        stdin()
+            .read_line(&mut answer)
             .expect("Failed to read the line");
 
         if answer.trim() == "y" {
@@ -155,7 +151,10 @@ fn get_oauth_token(client_id: String, client_secret: String) -> OAuthAccessToken
 
     let res = client
         .get(&token_url_with_oauth)
-        .send().unwrap().text().unwrap();
+        .send()
+        .unwrap()
+        .text()
+        .unwrap();
 
     let access_token_params: HashMap<String, String> = form_urlencoded::parse(&res.as_bytes())
         .into_owned()
@@ -181,9 +180,8 @@ fn add_access_token_to_config(client_config_path: PathBuf, oauth_access_token: &
 }
 
 fn client_config_path() -> PathBuf {
-    let home_directory: PathBuf = dirs::home_dir()
-        .expect("Could not determined home directory.");
-    let mut config_file_path : PathBuf = PathBuf::new();
+    let home_directory: PathBuf = dirs::home_dir().expect("Could not determined home directory.");
+    let mut config_file_path: PathBuf = PathBuf::new();
     config_file_path.push(home_directory);
     config_file_path.push(".goodreads.toml");
     config_file_path
@@ -191,14 +189,22 @@ fn client_config_path() -> PathBuf {
 
 fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
     match *args {
-        Cli::AddToShelf { } => {
+        Cli::AddToShelf {} => {
             let consumer = oauth_client::Token::new(
                 app_config.developer_key.clone(),
                 app_config.developer_secret.clone(),
             );
             let access = oauth_client::Token::new(
-                app_config.access_token.as_ref().expect("Access token should never be None here").clone(),
-                app_config.access_token_secret.as_ref().expect("Access token secret should never be None here").clone()
+                app_config
+                    .access_token
+                    .as_ref()
+                    .expect("Access token should never be None here")
+                    .clone(),
+                app_config
+                    .access_token_secret
+                    .as_ref()
+                    .expect("Access token secret should never be None here")
+                    .clone(),
             );
             let mut req_param = HashMap::new();
             let _ = req_param.insert("name".into(), "to-read".into());
@@ -208,18 +214,15 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
                 goodreads_api::ADD_TO_SHELF,
                 &consumer,
                 Some(&access),
-                Some(&req_param)
+                Some(&req_param),
             );
             let client = Client::new();
             let req = client
                 .post(goodreads_api::ADD_TO_SHELF)
-                .header(
-                    reqwest::header::AUTHORIZATION,
-                    header
-                )
+                .header(reqwest::header::AUTHORIZATION, header)
                 .header(
                     reqwest::header::CONTENT_TYPE,
-                    HeaderValue::from_static("application/x-www-form-urlencoded")
+                    HeaderValue::from_static("application/x-www-form-urlencoded"),
                 )
                 .body(body);
             let resp = req.send();
@@ -230,20 +233,32 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
                     } else {
                         println!("fuck");
                     }
-                },
-                Err(err) => println!("fuck: {}", err)
+                }
+                Err(err) => println!("fuck: {}", err),
             }
-        },
+        }
         Cli::Update { .. } => {
             let consumer = oauth_client::Token::new(
                 app_config.developer_key.clone(),
                 app_config.developer_secret.clone(),
             );
             let access = oauth_client::Token::new(
-                app_config.access_token.as_ref().expect("Access token should never be None here").clone(),
-                app_config.access_token_secret.as_ref().expect("Access token secret should never be None here").clone()
+                app_config
+                    .access_token
+                    .as_ref()
+                    .expect("Access token should never be None here")
+                    .clone(),
+                app_config
+                    .access_token_secret
+                    .as_ref()
+                    .expect("Access token secret should never be None here")
+                    .clone(),
             );
-            let user_id = app_config.user_id.as_ref().expect("user_id should never be None here").clone();
+            let user_id = app_config
+                .user_id
+                .as_ref()
+                .expect("user_id should never be None here")
+                .clone();
             let mut req_param = HashMap::new();
             let _ = req_param.insert("id".into(), user_id.to_string().into());
             let _ = req_param.insert("shelf".into(), "currently-reading".into());
@@ -253,18 +268,15 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
                 goodreads_api::LIST_SHELF,
                 &consumer,
                 Some(&access),
-                Some(&req_param)
+                Some(&req_param),
             );
             let client = Client::new();
             let req = client
                 .get(goodreads_api::LIST_SHELF)
-                .header(
-                    reqwest::header::AUTHORIZATION,
-                    header
-                )
+                .header(reqwest::header::AUTHORIZATION, header)
                 .header(
                     reqwest::header::CONTENT_TYPE,
-                    HeaderValue::from_static("application/x-www-form-urlencoded")
+                    HeaderValue::from_static("application/x-www-form-urlencoded"),
                 )
                 .body(body);
             let resp = req.send();
@@ -275,11 +287,13 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
                         let shelf: models::Shelf = models::parse_shelf(&shelf_xml).unwrap();
 
                         for (i, book) in shelf.books.iter().enumerate() {
-                            println!("{}. {}", i+1, book);
+                            println!("{}. {}", i + 1, book);
                         }
                         println!("Choose a book to update progress on:");
                         let choice = get_choice(1, shelf.books.len());
-                        let book_to_update = shelf.books.get(choice-1)
+                        let book_to_update = shelf
+                            .books
+                            .get(choice - 1)
                             .expect("Should never here access an invalid index");
                         match book_to_update.num_pages {
                             Some(val) => {
@@ -293,16 +307,15 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
                                 println!("You're on {}!", current_page);
                             }
                         }
-
                     } else {
                         println!("fuck: {}", result.status());
                     }
-                },
-                Err(err) => println!("fuck: {}", err)
+                }
+                Err(err) => println!("fuck: {}", err),
             }
-        },
-        Cli::Author { } => println!("'author' not yet implemented."),
-        Cli::Authenticate { } => println!("Already authenticated.")
+        }
+        Cli::Author {} => println!("'author' not yet implemented."),
+        Cli::Authenticate {} => println!("Already authenticated."),
     }
 }
 
@@ -319,7 +332,6 @@ fn get_choice(min: usize, max: usize) -> usize {
             }
         }
     }
-
 }
 
 fn main() {
@@ -327,7 +339,7 @@ fn main() {
 
     let cfg: config::Config = load_client_config(client_config_path());
 
-    let dev_key : String = cfg.get_str("developer_key").unwrap();
+    let dev_key: String = cfg.get_str("developer_key").unwrap();
     let dev_secret: String = cfg.get_str("developer_secret").unwrap();
     let access_token_res: Result<String, _> = cfg.get_str("access_token");
     let access_token_secret_res: Result<String, _> = cfg.get_str("access_token_secret");
@@ -347,12 +359,12 @@ fn main() {
         }
         Err(_err) => {
             match args {
-                Cli::Authenticate { } => {
+                Cli::Authenticate {} => {
                     let oauth_access_token = get_oauth_token(dev_key, dev_secret);
                     add_access_token_to_config(client_config_path(), &oauth_access_token)
                     // TODO(Jonathon): Need to also add user_id at this time
                 }
-                _ => println!("OAuth not set up. Please run: goodreads-sh auth")
+                _ => println!("OAuth not set up. Please run: goodreads-sh auth"),
             }
         }
     }
