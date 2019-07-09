@@ -2,6 +2,8 @@ use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
 
+use roxmltree::{Node, ExpandedName};
+
 struct Shelf {
     books: Vec<Book>
 }
@@ -13,21 +15,47 @@ struct Book {
 }
 
 
-fn parse_shelf(shelf_xml: &str) {
+fn parse_shelf(shelf_xml: &str) -> Result<Shelf, roxmltree::Error> {
+    let mut books: Vec<Book> = Vec::new();
     let doc = match roxmltree::Document::parse(shelf_xml) {
         Ok(doc) => doc,
         Err(e) => {
             println!("Error: {}.", e);
-            return;
+            return Err(e);
         },
     };
-
-    // TODO: finish
+    
     for node in doc.descendants() {
-        if node.is_element() {
-            println!("{:?} at {}", node.tag_name(), doc.text_pos_at(node.range().start));
+        if node.is_element() && node.has_tag_name("book") {
+            books.push(book_from_xml_node(node));
         }
     }
+
+    Ok(Shelf { books })
+}
+
+fn book_from_xml_node(node: Node) -> Book {
+    let mut b = Book {
+        id: -1,
+        description: "".to_owned(),
+        title: "".to_owned(),
+    };
+
+    for child_node in node.descendants() {
+        match child_node.tag_name().name() {
+            "id" => {
+                b.id = child_node.text().unwrap().parse::<i64>().unwrap();
+            }
+            "description" => {
+                b.description = String::from(child_node.text().unwrap());
+            }
+            "title" => {
+                b.title = String::from(child_node.text().unwrap());
+            }
+            _ => {}
+        }
+    }
+    b
 }
 
 
