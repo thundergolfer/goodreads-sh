@@ -1,5 +1,8 @@
 language: rust
 
+before_install:
+  - sudo apt install libssl-dev
+
 
 # Cache `cargo install`ed tools, but don't cache the project's `target`
 # directory (which ends up over-caching and filling all disk space!)
@@ -49,6 +52,7 @@ matrix:
         apt:
           packages:
             - musl-tools
+            - libssl-dev
       <<: *DEPLOY_TO_GITHUB
 
     - name: macOS Binary
