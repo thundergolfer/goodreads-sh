@@ -277,6 +277,23 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
                         for (i, book) in shelf.books.iter().enumerate() {
                             println!("{}. {}", i+1, book);
                         }
+                        println!("Choose a book to update progress on:");
+                        let choice = get_choice(1, shelf.books.len());
+                        let book_to_update = shelf.books.get(choice-1)
+                            .expect("Should never here access an invalid index");
+                        match book_to_update.num_pages {
+                            Some(val) => {
+                                println!("What page are you on now? (Max page is {}):", val);
+                                let current_page = get_choice(1, val as usize);
+                                println!("You're on {}!", current_page);
+                            }
+                            None => {
+                                println!("What page are you on now?:");
+                                let current_page = get_choice(1, 10_000);
+                                println!("You're on {}!", current_page);
+                            }
+                        }
+
                     } else {
                         println!("fuck: {}", result.status());
                     }
@@ -287,6 +304,22 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
         Cli::Author { } => println!("'author' not yet implemented."),
         Cli::Authenticate { } => println!("Already authenticated.")
     }
+}
+
+fn get_choice(min: usize, max: usize) -> usize {
+    loop {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input);
+
+        let value = input.trim().parse();
+        match value {
+            Ok(num) => return num,
+            Err(_) => {
+                println!("Please input a choice in the range [{}, {}]", min, max);
+            }
+        }
+    }
+
 }
 
 fn main() {

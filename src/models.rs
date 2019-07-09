@@ -12,9 +12,11 @@ pub struct Shelf {
 }
 
 pub struct Book {
-    id: i64,
-    description: String,
-    title: String
+    pub id: i64,
+    pub description: String,
+    pub title: String,
+    // Sometimes num_pages is missing from XML data.
+    pub num_pages: Option<i64>,
 }
 
 impl Display for Book {
@@ -53,6 +55,7 @@ fn book_from_xml_node(node: Node) -> Book {
         id: -1,
         description: "".to_owned(),
         title: "".to_owned(),
+        num_pages: None,
     };
 
     for child_node in node.descendants() {
@@ -65,6 +68,12 @@ fn book_from_xml_node(node: Node) -> Book {
             }
             "title" => {
                 b.title = String::from(child_node.text().unwrap());
+            }
+            "num_pages" => {
+                b.num_pages = match child_node.text() {
+                    Some(val) => Some(val.parse::<i64>().unwrap()),
+                    _ => None,
+                }
             }
             _ => {}
         }
