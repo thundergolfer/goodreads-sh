@@ -271,7 +271,12 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
             match resp {
                 Ok(mut result) => {
                     if result.status() == StatusCode::OK {
-                        println!("{}", result.text().unwrap());
+                        let shelf_xml = result.text().unwrap();
+                        let shelf: models::Shelf = models::parse_shelf(&shelf_xml).unwrap();
+
+                        for (i, book) in shelf.books.iter().enumerate() {
+                            println!("{}. {}", i+1, book);
+                        }
                     } else {
                         println!("fuck: {}", result.status());
                     }

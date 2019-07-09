@@ -1,21 +1,35 @@
 use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
+use std::fmt::{self, Formatter, Display};
 
-use roxmltree::{Node, ExpandedName};
+use roxmltree::{Node};
 
-struct Shelf {
-    books: Vec<Book>
+const MAX_DESC_LEN: usize = 20;
+
+pub struct Shelf {
+    pub books: Vec<Book>
 }
 
-struct Book {
+pub struct Book {
     id: i64,
     description: String,
     title: String
 }
 
+impl Display for Book {
+    // `f` is a buffer, this method must write the formatted string into it
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let shortened_desc = &self.description[..MAX_DESC_LEN];
 
-fn parse_shelf(shelf_xml: &str) -> Result<Shelf, roxmltree::Error> {
+        // `write!` is like `format!`, but it will write the formatted string
+        // into a buffer (the first argument)
+        write!(f, "{}: {}...", self.title, shortened_desc)
+    }
+}
+
+
+pub fn parse_shelf(shelf_xml: &str) -> Result<Shelf, roxmltree::Error> {
     let mut books: Vec<Book> = Vec::new();
     let doc = match roxmltree::Document::parse(shelf_xml) {
         Ok(doc) => doc,
@@ -24,7 +38,7 @@ fn parse_shelf(shelf_xml: &str) -> Result<Shelf, roxmltree::Error> {
             return Err(e);
         },
     };
-    
+
     for node in doc.descendants() {
         if node.is_element() && node.has_tag_name("book") {
             books.push(book_from_xml_node(node));
