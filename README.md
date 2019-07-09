@@ -1,4 +1,5 @@
 <h1 align="center">goodreads-sh</h1>
+<p align="center"><a href="https://travis-ci.com/thundergolfer/goodreads-sh"><img src="https://travis-ci.com/thundergolfer/goodreads-sh.svg?token=yHGWQ42iK2BPk1FjaUMc&branch=master"></a></p>
 <p align="center">Command line interface for <a href="https://goodreads.com" > Goodreads</a>. Focuses on letting you quickly update your current reading activity, and giving you quick access to what your friends are reading.</p>
 <p align="center">
 <a href="https://i.imgur.com/der2fH7.gif"><img src="https://i.imgur.com/der2fH7.gif" width="600"/></a>

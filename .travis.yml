@@ -1,0 +1,64 @@
+language: rust
+
+
+# Cache `cargo install`ed tools, but don't cache the project's `target`
+# directory (which ends up over-caching and filling all disk space!)
+cache:
+  directories:
+    - /home/travis/.cargo
+
+DEPLOY_TO_GITHUB: &DEPLOY_TO_GITHUB
+  before_deploy:
+    - git config --local user.name "Jonathon Belotti"
+    - git config --local user.email "jonathon.i.belotti@gmail.com"
+    - name="goodreads-sh-$TRAVIS_TAG-$TARGET"
+    - mkdir $name
+    - cp target/$TARGET/release/goodreads-sh $name/
+    - cp README.md LICENSE $name/
+    - tar czvf $name.tar.gz $name
+  deploy:
+    provider: releases
+    api_key:
+      secure: "VizDQDzYiU4MrNC3tkMov83T6dqr8InrxfD2rRJBc/dVa+79MPSQQx40+ekRiXnqTRH16Ex3XleA47KU2GFPgPGJO3vY2L7w+fjDJfljqvniKjQiO8mtJFgvAkZjjC53NkPeTylYLK7l1ftFRRpb5LNp3q0CWrNrzSg2jWxdN20kGyONxfAv6ixoCxjFFmRMQvM+KzzPmYATz4Pxoy/KzPVJ2jSzpbuilQTjWuhaMhvgnLDp0+M7DHDKN6Cl48CGGaPCee8xYh1fexhLIhVjBThdGckeXFjbxgcgxlqVtNctyShP+MAg2kmv96lju4K8G68VoMln1DdI6ptdOGgC29p7UK2tthtT33+IWJVFHiqwmMmrBDTvk18bskx8kLshDwpMhYsMJhN1fwml9rFAoaaPlMHExEb/3NKnfmkXAjKzd6aw7eqH1VsiVyE5mUeInrPC9vALzCilXRDiuK+HX5CrZmrj9bm7SINeHgnO7R0I8oMrLIlP4MmkeLioFRgrpKCM65m85ViGA8uz4LILVitiCJP3U+2WG144WGzr/v+3icg1R228EbxolNbMlPjHp1BjmMl/Ig++0poVPLUy6g7sAkRX6ewygo+MuN8msWamzcuf1Kprb8/GP49/Rln/CPPGu4i1vZENshK4iOVijVjc1JCi0lLmYF87oeIaxFI="
+    file: goodreads-sh-$TRAVIS_TAG-$TARGET.tar.gz
+    skip_cleanup: true
+    on:
+      tags: true
+
+matrix:
+  include:
+
+    - name: Tests
+      env: RUST_BACKTRACE=1
+      rust: nightly
+      addons:
+        firefox: latest
+        chrome: stable
+      script:
+        - cargo test --locked
+        - rustup component add rustfmt
+        - cargo fmt --version
+        - cargo fmt --all -- --check
+
+    - name: Linux Binary
+      env: TARGET=x86_64-unknown-linux-musl
+      rust: nightly
+      before_script: rustup target add $TARGET
+      script: cargo build --release --target $TARGET --locked
+      addons:
+        apt:
+          packages:
+            - musl-tools
+      <<: *DEPLOY_TO_GITHUB
+
+    - name: macOS Binary
+      env: MACOSX_DEPLOYMENT_TARGET=10.7 TARGET=x86_64-apple-darwin
+      os: osx
+      rust: nightly
+      script: cargo build --release --target $TARGET --locked
+      install: true
+      <<: *DEPLOY_TO_GITHUB
+
+notifications:
+  email:
+    on_success: never
