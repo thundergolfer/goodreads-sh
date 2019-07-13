@@ -1,5 +1,5 @@
-use std::fmt::{self, Display, Formatter};
 use regex::Regex;
+use std::fmt::{self, Display, Formatter};
 
 use roxmltree::Node;
 
@@ -48,12 +48,15 @@ pub fn parse_shelf(shelf_xml: &str) -> Result<Shelf, roxmltree::Error> {
 /// The usable ID value can only be found in URLs in the XML object.
 /// This function can extract the ID from the '<link>' node.
 fn extract_book_id_from_book_link(book_link: &str) -> Option<u32> {
-    let re: Regex = Regex::new(r"(?x)
+    let re: Regex = Regex::new(
+        r"(?x)
         ^https://www.goodreads.com/book/show/(?P<book_id>[\d]+)[\-|\.]
         ([[:word:]]+-)*
         ([[:word:]]+_)*
         [[:word:]]+$
-        ").unwrap();
+        ",
+    )
+    .unwrap();
     re.captures(book_link).and_then(|cap| {
         cap.name("book_id")
             .map(|book_id| book_id.as_str())
@@ -77,9 +80,10 @@ fn book_from_xml_node(node: Node) -> Book {
                 if parent.is_some() && parent.unwrap().tag_name().name() == "book" {
                     let link_txt = child_node.text().unwrap();
                     let book_id = extract_book_id_from_book_link(link_txt);
-                    book.id = book_id.expect(
-                        &format!("Could not get book id from <link> URL: {}", link_txt)
-                    );
+                    book.id = book_id.expect(&format!(
+                        "Could not get book id from <link> URL: {}",
+                        link_txt
+                    ));
                 }
             }
             "description" => {
@@ -111,21 +115,30 @@ mod tests {
         text
     }
 
-//    #[test]
-//    fn test_parse_shelf() {
-//        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-//        path.push("src/api_responses/currently_reading_shelf_resp.xml");
-//        println!("{}", path.display());
-//        let text = load_file(&path);
-//        parse_shelf(&text);
-//    }
+    //    #[test]
+    //    fn test_parse_shelf() {
+    //        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    //        path.push("src/api_responses/currently_reading_shelf_resp.xml");
+    //        println!("{}", path.display());
+    //        let text = load_file(&path);
+    //        parse_shelf(&text);
+    //    }
 
     #[test]
     fn test_extract_book_id_from_book_link() {
         let cases = vec![
-            ("https://www.goodreads.com/book/show/1234.The_First_Book", 1234 as u32),
-            ("https://www.goodreads.com/book/show/4444-The-Second-Book", 4444 as u32),
-            ("https://www.goodreads.com/book/show/934343-The_Book", 934343 as u32),
+            (
+                "https://www.goodreads.com/book/show/1234.The_First_Book",
+                1234 as u32,
+            ),
+            (
+                "https://www.goodreads.com/book/show/4444-The-Second-Book",
+                4444 as u32,
+            ),
+            (
+                "https://www.goodreads.com/book/show/934343-The_Book",
+                934343 as u32,
+            ),
         ];
 
         for (url, book_id) in cases.iter() {

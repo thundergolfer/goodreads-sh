@@ -14,8 +14,8 @@ use url::form_urlencoded;
 
 extern crate dirs;
 
-mod models;
 mod api_client;
+mod models;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "goodreads-sh", about = "CLI interface to Goodreads.com")]
@@ -185,7 +185,7 @@ fn client_config_path() -> PathBuf {
 fn run_command(
     args: &Cli,
     app_config: &GoodReadsConfig,
-    gr_client: &api_client::GoodreadsApiClient
+    gr_client: &api_client::GoodreadsApiClient,
 ) {
     match *args {
         Cli::AddToShelf {} => {
@@ -256,22 +256,16 @@ fn run_command(
                             println!("What page are you on now? (Max page is {}):", val);
                             let current_page = get_choice(1, val);
                             println!("You're on {}!", current_page);
-                            gr_client.update_status(
-                                Some(book_to_update),
-                                Some(current_page),
-                                None,
-                                None,
-                            ).unwrap();
+                            gr_client
+                                .update_status(Some(book_to_update), Some(current_page), None, None)
+                                .unwrap();
                         }
                         None => {
                             println!("What page are you on now?:");
                             let current_page = get_choice(1, 10_000);
-                            gr_client.update_status(
-                                Some(book_to_update),
-                                Some(current_page),
-                                None,
-                                None,
-                            ).unwrap();
+                            gr_client
+                                .update_status(Some(book_to_update), Some(current_page), None, None)
+                                .unwrap();
                         }
                     }
                 }
@@ -284,7 +278,7 @@ fn run_command(
                 Ok(id) => println!("Your user id is: {}", id),
                 Err(err) => println!("Error: {}", err),
             }
-        },
+        }
         Cli::Authenticate {} => println!("Already authenticated."),
     }
 }

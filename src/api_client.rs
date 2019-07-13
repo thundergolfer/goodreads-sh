@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 use super::models;
-use reqwest::{Client, StatusCode};
 use oauth_client;
-use std::collections::HashMap;
+use reqwest::{Client, StatusCode};
 use std::borrow::Cow;
+use std::collections::HashMap;
 
 pub mod goodreads_api_endpoints {
     pub const USER_ID: &'static str = "https://www.goodreads.com/api/auth_user";
@@ -20,7 +20,6 @@ pub struct GoodreadsApiClientAuth {
     oauth_access_token: String,
     oauth_access_token_secret: String,
 }
-
 
 pub struct GoodreadsApiClient {
     pub auth: GoodreadsApiClientAuth,
@@ -38,35 +37,34 @@ impl GoodreadsApiClient {
         );
 
         match res {
-            Ok(mut resp) => {
-                match resp.status() {
-                    StatusCode::OK => {
-                        let resp_xml = resp.text().unwrap();
-                        let doc = match roxmltree::Document::parse(&resp_xml) {
-                            Ok(doc) => doc,
-                            Err(e) => {
-                                println!("Error: {}.", e);
-                                return Err(String::from("Failed to parse XML response"));
-                            }
-                        };
-
-                        let user_nodes: Vec<roxmltree::Node> = doc.descendants()
-                            .filter(|n| n.has_tag_name("user"))
-                            .collect::<Vec<_>>();
-
-                        if user_nodes.len() != 1 {
-                            Err(String::from("fuck"))
-                        } else {
-                            let user_node = user_nodes.get(0).unwrap();
-                            let id = user_node.attribute("id").unwrap();
-                            let id = id.parse::<u32>().unwrap();
-                            Ok(id)
+            Ok(mut resp) => match resp.status() {
+                StatusCode::OK => {
+                    let resp_xml = resp.text().unwrap();
+                    let doc = match roxmltree::Document::parse(&resp_xml) {
+                        Ok(doc) => doc,
+                        Err(e) => {
+                            println!("Error: {}.", e);
+                            return Err(String::from("Failed to parse XML response"));
                         }
-                    },
-                    _ => Err(String::from("Request to get user id failed"))
+                    };
+
+                    let user_nodes: Vec<roxmltree::Node> = doc
+                        .descendants()
+                        .filter(|n| n.has_tag_name("user"))
+                        .collect::<Vec<_>>();
+
+                    if user_nodes.len() != 1 {
+                        Err(String::from("fuck"))
+                    } else {
+                        let user_node = user_nodes.get(0).unwrap();
+                        let id = user_node.attribute("id").unwrap();
+                        let id = id.parse::<u32>().unwrap();
+                        Ok(id)
+                    }
                 }
+                _ => Err(String::from("Request to get user id failed")),
             },
-            Err(err) => Err(String::from("Request to get user id failed"))
+            Err(err) => Err(String::from("Request to get user id failed")),
         }
     }
 
@@ -82,7 +80,10 @@ impl GoodreadsApiClient {
         } else if book.is_none() {
             return Err("Sending status updates without a book is not yet supported.".to_owned());
         } else if page.is_some() && percent.is_some() {
-            return Err("Cannot specify both 'page' and 'percent' progress indicators. Choose 1.".to_owned());
+            return Err(
+                "Cannot specify both 'page' and 'percent' progress indicators. Choose 1."
+                    .to_owned(),
+            );
         }
 
         let mut req_params = HashMap::new();
@@ -108,15 +109,12 @@ impl GoodreadsApiClient {
             Ok(mut resp) => {
                 println!("Updated: {}", resp.text().unwrap());
                 Ok(())
-            },
-            Err(err) => Err(format!("Request failed: {}", err))
+            }
+            Err(err) => Err(format!("Request failed: {}", err)),
         }
     }
 
-    pub fn list_shelf(
-        &self,
-        shelf_name: &str
-    ) -> Result<String, String> {
+    pub fn list_shelf(&self, shelf_name: &str) -> Result<String, String> {
         let mut req_params = HashMap::new();
         let _ = req_params.insert(Cow::from("id"), Cow::from(self.user_id.to_string()));
         let _ = req_params.insert(Cow::from("shelf"), Cow::from(shelf_name));
@@ -134,10 +132,13 @@ impl GoodreadsApiClient {
                 if resp.status() == StatusCode::OK {
                     Ok(resp.text().unwrap())
                 } else {
-                    Err(format!("Request failed. Response status: {}", resp.status()))
+                    Err(format!(
+                        "Request failed. Response status: {}",
+                        resp.status()
+                    ))
                 }
-            },
-            Err(err) => Err(format!("Request failed: {}", err))
+            }
+            Err(err) => Err(format!("Request failed: {}", err)),
         }
     }
 
@@ -175,7 +176,7 @@ fn make_oauthd_request(
     );
     let access = oauth_client::Token::new(
         gr_client.auth.oauth_access_token.clone(),
-            gr_client.auth.oauth_access_token_secret.clone(),
+        gr_client.auth.oauth_access_token_secret.clone(),
     );
     let (header, _body) = oauth_client::authorization_header(
         method.as_str(),
@@ -184,7 +185,8 @@ fn make_oauthd_request(
         Some(&access),
         req_params,
     );
-    let req = gr_client.client
+    let req = gr_client
+        .client
         .request(method, url)
         .header(reqwest::header::AUTHORIZATION, header);
     if req_params.is_some() {
@@ -193,10 +195,9 @@ fn make_oauthd_request(
     } else {
         req.send()
     }
-
 }
 
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Percentage(u8);
 
 impl Percentage {
