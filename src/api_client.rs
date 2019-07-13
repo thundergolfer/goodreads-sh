@@ -9,7 +9,7 @@ use std::hash::Hash;
 use std::collections::hash_map::RandomState;
 use std::borrow::Cow;
 
-mod goodreads_api_endpoints {
+pub mod goodreads_api_endpoints {
     pub const USER_ID: &'static str = "https://www.goodreads.com/api/auth_user";
     pub const LIST_SHELF: &'static str = "https://www.goodreads.com/review/list?v=2";
     pub const ADD_TO_SHELF: &'static str = "https://www.goodreads.com/shelf/add_to_shelf.xml";

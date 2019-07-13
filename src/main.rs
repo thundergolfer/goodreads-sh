@@ -17,12 +17,6 @@ extern crate dirs;
 mod models;
 mod api_client;
 
-mod goodreads_api {
-    pub const USER_ID: &'static str = "https://www.goodreads.com/api/auth_user";
-    pub const LIST_SHELF: &'static str = "https://www.goodreads.com/review/list?v=2";
-    pub const ADD_TO_SHELF: &'static str = "https://www.goodreads.com/shelf/add_to_shelf.xml";
-}
-
 #[derive(Debug, StructOpt)]
 #[structopt(name = "goodreads-sh", about = "CLI interface to Goodreads.com")]
 enum Cli {
@@ -216,14 +210,14 @@ fn run_command(
             let _ = req_param.insert("book_id".into(), "9282".into());
             let (header, body) = oauth_client::authorization_header(
                 "POST",
-                goodreads_api::ADD_TO_SHELF,
+                api_client::goodreads_api_endpoints::ADD_TO_SHELF,
                 &consumer,
                 Some(&access),
                 Some(&req_param),
             );
             let client = Client::new();
             let req = client
-                .post(goodreads_api::ADD_TO_SHELF)
+                .post(api_client::goodreads_api_endpoints::ADD_TO_SHELF)
                 .header(reqwest::header::AUTHORIZATION, header)
                 .header(
                     reqwest::header::CONTENT_TYPE,
