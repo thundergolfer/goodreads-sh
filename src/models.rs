@@ -80,6 +80,7 @@ fn book_from_xml_node(node: Node) -> Book {
         match child_node.tag_name().name() {
             "link" => {
                 let parent = child_node.parent();
+                // Don't attempt to parse the <link> node that is within the <author> node.
                 if parent.is_some() && parent.unwrap().tag_name().name() == "book" {
                     let link_txt = child_node.text().unwrap();
                     let book_id = extract_book_id_from_book_link(link_txt);
