@@ -21,13 +21,13 @@ mod api_client;
 #[structopt(name = "goodreads-sh", about = "CLI interface to Goodreads.com")]
 enum Cli {
     #[structopt(name = "add-to-shelf")]
-    /// TODO: Add a help msg here for Book
+    /// Add a book to an existing shelf
     AddToShelf {},
     #[structopt(name = "me")]
-    /// TODO: Add a help msg here for Me
+    /// Show your User ID
     Me {},
     #[structopt(name = "update")]
-    /// TODO: Add a help msg here for User
+    /// Update progress on a book you're currently reading
     Update {
         #[structopt(short = "a")]
         all: bool,
