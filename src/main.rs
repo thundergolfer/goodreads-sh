@@ -15,6 +15,7 @@ use url::form_urlencoded;
 extern crate dirs;
 
 mod models;
+mod api_client;
 
 mod goodreads_api {
     pub const USER_ID: &'static str = "https://www.goodreads.com/api/auth_user";
@@ -47,7 +48,7 @@ struct GoodReadsConfig {
     developer_secret: String,
     access_token: Option<String>,
     access_token_secret: Option<String>,
-    user_id: Option<i64>,
+    user_id: Option<u32>,
 }
 
 #[derive(Debug)]
@@ -187,7 +188,11 @@ fn client_config_path() -> PathBuf {
     config_file_path
 }
 
-fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
+fn run_command(
+    args: &Cli,
+    app_config: &GoodReadsConfig,
+    gr_client: &api_client::GoodreadsApiClient
+) {
     match *args {
         Cli::AddToShelf {} => {
             let consumer = oauth_client::Token::new(
@@ -290,21 +295,33 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
                             println!("{}. {}", i + 1, book);
                         }
                         println!("Choose a book to update progress on:");
-                        let choice = get_choice(1, shelf.books.len());
+                        let choice = get_choice(1, shelf.books.len() as u32);
                         let book_to_update = shelf
                             .books
-                            .get(choice - 1)
+                            .get((choice as usize) - 1)
                             .expect("Should never here access an invalid index");
                         match book_to_update.num_pages {
                             Some(val) => {
                                 println!("What page are you on now? (Max page is {}):", val);
-                                let current_page = get_choice(1, val as usize);
+                                let current_page = get_choice(1, val);
                                 println!("You're on {}!", current_page);
+                                gr_client.update_status(
+                                    Some(book_to_update),
+                                    Some(current_page),
+                                    None,
+                                    None,
+                                ).unwrap();
                             }
                             None => {
                                 println!("What page are you on now?:");
                                 let current_page = get_choice(1, 10_000);
                                 println!("You're on {}!", current_page);
+                                gr_client.update_status(
+                                    Some(book_to_update),
+                                    Some(current_page),
+                                    None,
+                                    None,
+                                ).unwrap();
                             }
                         }
                     } else {
@@ -319,7 +336,7 @@ fn run_command(args: &Cli, app_config: &GoodReadsConfig) {
     }
 }
 
-fn get_choice(min: usize, max: usize) -> usize {
+fn get_choice(min: u32, max: u32) -> u32 {
     loop {
         let mut input = String::new();
         std::io::stdin().read_line(&mut input);
@@ -344,18 +361,28 @@ fn main() {
     let access_token_res: Result<String, _> = cfg.get_str("access_token");
     let access_token_secret_res: Result<String, _> = cfg.get_str("access_token_secret");
     let user_id_res: Result<i64, _> = cfg.get_int("user_id");
+    let user_id = user_id_res.unwrap() as u32;
 
     // TODO(Jonathon): Check for both access_token and access_token_secret
     match access_token_res {
         Ok(access_token) => {
+            let access_token_secret = access_token_secret_res.unwrap();
             let app_config = GoodReadsConfig {
-                developer_secret: dev_secret,
-                developer_key: dev_key,
-                access_token_secret: Some(access_token_secret_res.unwrap()),
-                access_token: Some(access_token),
-                user_id: Some(user_id_res.unwrap()),
+                developer_secret: dev_secret.clone(),
+                developer_key: dev_key.clone(),
+                access_token_secret: Some(access_token_secret.clone()),
+                access_token: Some(access_token.clone()),
+                user_id: Some(user_id),
             };
-            run_command(&args, &app_config);
+            let gr_client = api_client::GoodreadsApiClient::new(
+                user_id,
+                &dev_key,
+                &dev_secret,
+                &access_token,
+                &access_token_secret,
+            );
+
+            run_command(&args, &app_config, &gr_client);
         }
         Err(_err) => {
             match args {

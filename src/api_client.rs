@@ -17,7 +17,7 @@ mod goodreads_api_endpoints {
 }
 
 #[derive(Serialize, Deserialize)]
-struct GoodreadsApiClientAuth {
+pub struct GoodreadsApiClientAuth {
     developer_key: String,
     developer_secret: String,
     oauth_access_token: String,
@@ -27,7 +27,7 @@ struct GoodreadsApiClientAuth {
 
 pub struct GoodreadsApiClient {
     pub auth: GoodreadsApiClientAuth,
-    pub user_id: i64,
+    pub user_id: u32,
     pub client: Client,
 }
 
@@ -39,8 +39,8 @@ impl GoodreadsApiClient {
 
     pub fn update_status(
         &self,
-        book: Option<models::Book>,
-        page: Option<u16>,
+        book: Option<&models::Book>,
+        page: Option<u32>,
         percent: Option<Percentage>,
         body: Option<String>,
     ) -> Result<(), String> {
@@ -77,7 +77,7 @@ impl GoodreadsApiClient {
     }
 
     pub fn new(
-        user_id: i64,
+        user_id: u32,
         developer_key: &str,
         developer_secret: &str,
         oauth_access_token: &str,

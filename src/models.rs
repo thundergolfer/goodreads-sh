@@ -16,7 +16,7 @@ pub struct Book {
     pub description: String,
     pub title: String,
     // Sometimes num_pages is missing from XML data.
-    pub num_pages: Option<i64>,
+    pub num_pages: Option<u32>,
 }
 
 impl Display for Book {
@@ -70,7 +70,7 @@ fn book_from_xml_node(node: Node) -> Book {
             }
             "num_pages" => {
                 b.num_pages = match child_node.text() {
-                    Some(val) => Some(val.parse::<i64>().unwrap()),
+                    Some(val) => Some(val.parse::<u32>().unwrap()),
                     _ => None,
                 }
             }
