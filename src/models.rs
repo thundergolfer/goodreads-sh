@@ -1,7 +1,7 @@
 use std::fmt::{self, Display, Formatter};
-use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
+use std::fs;
 
 use roxmltree::Node;
 
