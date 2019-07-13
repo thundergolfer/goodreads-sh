@@ -21,12 +21,8 @@ pub struct Book {
 }
 
 impl Display for Book {
-    // `f` is a buffer, this method must write the formatted string into it
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let shortened_desc = &self.description[..MAX_DESC_LEN];
-
-        // `write!` is like `format!`, but it will write the formatted string
-        // into a buffer (the first argument)
         write!(f, "{}: {}...", self.title, shortened_desc)
     }
 }

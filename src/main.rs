@@ -240,7 +240,6 @@ fn run_command(
             let res = gr_client.list_shelf("currently-reading");
             match res {
                 Ok(shelf_xml) => {
-//                    println!("{}", shelf_xml.clone());
                     let shelf: models::Shelf = models::parse_shelf(&shelf_xml).unwrap();
 
                     for (i, book) in shelf.books.iter().enumerate() {
