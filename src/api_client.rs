@@ -151,15 +151,9 @@ fn make_oauthd_request(
         Some(&access),
         Some(&req_params),
     );
-    println!("body: {}\n\nheaders: {}", body.clone(), header.clone());
     let req = gr_client.client
         .request(method, url)
         .header(reqwest::header::AUTHORIZATION, header)
-//        .header(
-//            reqwest::header::CONTENT_TYPE,
-//        HeaderValue::from_static("application/x-www-form-urlencoded"),
-//        )
-//        .body(body);
         .form(&req_params);
     req.send()
 }

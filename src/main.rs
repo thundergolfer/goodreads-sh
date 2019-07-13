@@ -273,7 +273,6 @@ fn run_command(
                         None => {
                             println!("What page are you on now?:");
                             let current_page = get_choice(1, 10_000);
-                            println!("You're on {}!", current_page);
                             gr_client.update_status(
                                 Some(book_to_update),
                                 Some(current_page),
