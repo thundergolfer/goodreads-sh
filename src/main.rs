@@ -243,90 +243,44 @@ fn run_command(
             }
         }
         Cli::Update { .. } => {
-            let consumer = oauth_client::Token::new(
-                app_config.developer_key.clone(),
-                app_config.developer_secret.clone(),
-            );
-            let access = oauth_client::Token::new(
-                app_config
-                    .access_token
-                    .as_ref()
-                    .expect("Access token should never be None here")
-                    .clone(),
-                app_config
-                    .access_token_secret
-                    .as_ref()
-                    .expect("Access token secret should never be None here")
-                    .clone(),
-            );
-            let user_id = app_config
-                .user_id
-                .as_ref()
-                .expect("user_id should never be None here")
-                .clone();
-            let mut req_param = HashMap::new();
-            let _ = req_param.insert("id".into(), user_id.to_string().into());
-            let _ = req_param.insert("shelf".into(), "currently-reading".into());
-            let _ = req_param.insert("key".into(), app_config.developer_key.clone().into());
-            let (header, body) = oauth_client::authorization_header(
-                "GET",
-                goodreads_api::LIST_SHELF,
-                &consumer,
-                Some(&access),
-                Some(&req_param),
-            );
-            let client = Client::new();
-            let req = client
-                .get(goodreads_api::LIST_SHELF)
-                .header(reqwest::header::AUTHORIZATION, header)
-                .header(
-                    reqwest::header::CONTENT_TYPE,
-                    HeaderValue::from_static("application/x-www-form-urlencoded"),
-                )
-                .body(body);
-            let resp = req.send();
-            match resp {
-                Ok(mut result) => {
-                    if result.status() == StatusCode::OK {
-                        let shelf_xml = result.text().unwrap();
-                        println!("{}", shelf_xml.clone());
-                        let shelf: models::Shelf = models::parse_shelf(&shelf_xml).unwrap();
+            let res = gr_client.list_shelf("currently-reading");
+            match res {
+                Ok(shelf_xml) => {
+//                    println!("{}", shelf_xml.clone());
+                    let shelf: models::Shelf = models::parse_shelf(&shelf_xml).unwrap();
 
-                        for (i, book) in shelf.books.iter().enumerate() {
-                            println!("{}. {}", i + 1, book);
+                    for (i, book) in shelf.books.iter().enumerate() {
+                        println!("{}. {}", i + 1, book);
+                    }
+                    println!("Choose a book to update progress on:");
+                    let choice = get_choice(1, shelf.books.len() as u32);
+                    let book_to_update = shelf
+                        .books
+                        .get((choice as usize) - 1)
+                        .expect("Should never here access an invalid index");
+                    match book_to_update.num_pages {
+                        Some(val) => {
+                            println!("What page are you on now? (Max page is {}):", val);
+                            let current_page = get_choice(1, val);
+                            println!("You're on {}!", current_page);
+                            gr_client.update_status(
+                                Some(book_to_update),
+                                Some(current_page),
+                                None,
+                                None,
+                            ).unwrap();
                         }
-                        println!("Choose a book to update progress on:");
-                        let choice = get_choice(1, shelf.books.len() as u32);
-                        let book_to_update = shelf
-                            .books
-                            .get((choice as usize) - 1)
-                            .expect("Should never here access an invalid index");
-                        match book_to_update.num_pages {
-                            Some(val) => {
-                                println!("What page are you on now? (Max page is {}):", val);
-                                let current_page = get_choice(1, val);
-                                println!("You're on {}!", current_page);
-                                gr_client.update_status(
-                                    Some(book_to_update),
-                                    Some(current_page),
-                                    None,
-                                    None,
-                                ).unwrap();
-                            }
-                            None => {
-                                println!("What page are you on now?:");
-                                let current_page = get_choice(1, 10_000);
-                                println!("You're on {}!", current_page);
-                                gr_client.update_status(
-                                    Some(book_to_update),
-                                    Some(current_page),
-                                    None,
-                                    None,
-                                ).unwrap();
-                            }
+                        None => {
+                            println!("What page are you on now?:");
+                            let current_page = get_choice(1, 10_000);
+                            println!("You're on {}!", current_page);
+                            gr_client.update_status(
+                                Some(book_to_update),
+                                Some(current_page),
+                                None,
+                                None,
+                            ).unwrap();
                         }
-                    } else {
-                        println!("fuck: {}", result.status());
                     }
                 }
                 Err(err) => println!("fuck: {}", err),

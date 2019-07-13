@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::models;
-use reqwest::{Client, Response, Method};
+use reqwest::{Client, Response, Method, StatusCode};
 use reqwest::header::HeaderValue;
 use oauth_client;
 use std::collections::HashMap;
@@ -80,6 +80,34 @@ impl GoodreadsApiClient {
         }
     }
 
+    pub fn list_shelf(
+        &self,
+        shelf_name: &str
+    ) -> Result<String, String> {
+        let mut req_params = HashMap::new();
+        let _ = req_params.insert(Cow::from("id"), Cow::from(self.user_id.to_string()));
+        let _ = req_params.insert(Cow::from("shelf"), Cow::from("currently-reading"));
+        let _ = req_params.insert(Cow::from("key"), Cow::from(self.auth.developer_key.clone()));
+
+        let res = make_oauthd_request(
+            self,
+            reqwest::Method::GET,
+            goodreads_api_endpoints::LIST_SHELF,
+            req_params,
+        );
+
+        match res {
+            Ok(mut resp) => {
+                if resp.status() == StatusCode::OK {
+                    Ok(resp.text().unwrap())
+                } else {
+                    Err(format!("Request failed. Response status: {}", resp.status()))
+                }
+            },
+            Err(err) => Err(format!("Request failed: {}", err))
+        }
+    }
+
     pub fn new(
         user_id: u32,
         developer_key: &str,
@@ -125,7 +153,7 @@ fn make_oauthd_request(
     );
     println!("body: {}\n\nheaders: {}", body.clone(), header.clone());
     let req = gr_client.client
-        .post(url)
+        .request(method, url)
         .header(reqwest::header::AUTHORIZATION, header)
 //        .header(
 //            reqwest::header::CONTENT_TYPE,
