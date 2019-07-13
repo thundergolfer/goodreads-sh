@@ -35,7 +35,21 @@ Your config file should already be present in your home dir `~/.goodreads.toml` 
 
 ## Usage
 
-`coming soon`
+```bash
+USAGE:
+    goodreads-sh <SUBCOMMAND>
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+SUBCOMMANDS:
+    add-to-shelf    Add a book to an existing shelf [In Progress]
+    auth            Setup OAuth for the CLI (1 time only)
+    help            Prints this message or the help of the given subcommand(s)
+    me              Show your User ID
+    update          Update progress on a book you're currently reading
+```
 
 ## Credit
 

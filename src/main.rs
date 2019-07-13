@@ -21,7 +21,7 @@ mod models;
 #[structopt(name = "goodreads-sh", about = "CLI interface to Goodreads.com")]
 enum Cli {
     #[structopt(name = "add-to-shelf")]
-    /// Add a book to an existing shelf
+    /// Add a book to an existing shelf [In Progress]
     AddToShelf {},
     #[structopt(name = "me")]
     /// Show your User ID
@@ -32,6 +32,7 @@ enum Cli {
         #[structopt(short = "a")]
         all: bool,
     },
+    /// Setup OAuth for the CLI (1 time only)
     #[structopt(name = "auth")]
     Authenticate {},
 }
