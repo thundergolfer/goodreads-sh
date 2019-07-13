@@ -289,6 +289,7 @@ fn run_command(
                 Ok(mut result) => {
                     if result.status() == StatusCode::OK {
                         let shelf_xml = result.text().unwrap();
+                        println!("{}", shelf_xml.clone());
                         let shelf: models::Shelf = models::parse_shelf(&shelf_xml).unwrap();
 
                         for (i, book) in shelf.books.iter().enumerate() {

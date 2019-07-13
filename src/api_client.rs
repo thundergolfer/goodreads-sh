@@ -13,7 +13,7 @@ mod goodreads_api_endpoints {
     pub const USER_ID: &'static str = "https://www.goodreads.com/api/auth_user";
     pub const LIST_SHELF: &'static str = "https://www.goodreads.com/review/list?v=2";
     pub const ADD_TO_SHELF: &'static str = "https://www.goodreads.com/shelf/add_to_shelf.xml";
-    pub const UPDATE_STATUS: &'static str = "https://www.goodreads.com/user_status.xml";
+    pub const UPDATE_STATUS: &'static str = "https://www.goodreads.com/user_status.json";
 }
 
 #[derive(Serialize, Deserialize)]
@@ -61,17 +61,21 @@ impl GoodreadsApiClient {
             let _ = req_params.insert(Cow::from("user_status[percent]"), Cow::from(percent));
         }
         let book_id = book.unwrap().id.to_string();
-        let _ = req_params.insert(Cow::from("user_status[book]"), Cow::from(book_id));
+        let _ = req_params.insert(Cow::from("user_status[book_id]"), Cow::from(book_id));
+        let _ = req_params.insert(Cow::from("user_status[body]"), Cow::from(""));
 
-        let resp = make_oauthd_request(
+        let res = make_oauthd_request(
             self,
             reqwest::Method::POST,
             goodreads_api_endpoints::UPDATE_STATUS,
             req_params,
         );
 
-        match resp {
-            Ok(_) => Ok(()),
+        match res {
+            Ok(mut resp) => {
+                println!("Updated: {}", resp.text().unwrap());
+                Ok(())
+            },
             Err(err) => Err(format!("Request failed: {}", err))
         }
     }
@@ -119,15 +123,16 @@ fn make_oauthd_request(
         Some(&access),
         Some(&req_params),
     );
-
+    println!("body: {}\n\nheaders: {}", body.clone(), header.clone());
     let req = gr_client.client
-        .get(url)
+        .post(url)
         .header(reqwest::header::AUTHORIZATION, header)
-        .header(
-            reqwest::header::CONTENT_TYPE,
-        HeaderValue::from_static("application/x-www-form-urlencoded"),
-        )
-        .body(body);
+//        .header(
+//            reqwest::header::CONTENT_TYPE,
+//        HeaderValue::from_static("application/x-www-form-urlencoded"),
+//        )
+//        .body(body);
+        .form(&req_params);
     req.send()
 }
 

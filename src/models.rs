@@ -2,6 +2,7 @@ use std::fmt::{self, Display, Formatter};
 use std::io::Read;
 use std::path::PathBuf;
 use std::fs;
+use regex::Regex;
 
 use roxmltree::Node;
 
@@ -12,7 +13,7 @@ pub struct Shelf {
 }
 
 pub struct Book {
-    pub id: i64,
+    pub id: u32,
     pub description: String,
     pub title: String,
     // Sometimes num_pages is missing from XML data.
@@ -49,9 +50,27 @@ pub fn parse_shelf(shelf_xml: &str) -> Result<Shelf, roxmltree::Error> {
     Ok(Shelf { books })
 }
 
+/// For some insane reason the 'id' field that appears in the XML is NOT
+/// the id value that you want to use in API calls.
+/// The usable ID value can only be found in URLs in the XML object.
+/// This function can extract the ID from the '<link>' node.
+fn extract_book_id_from_book_link(book_link: &str) -> Option<u32> {
+    let re: Regex = Regex::new(r"(?x)
+        ^https://www.goodreads.com/book/show/(?P<book_id>[\d]+)[\-|\.]
+        ([[:word:]]+\-)*
+        ([[:word:]]+_)*
+        [[:word:]]+$
+        ").unwrap();
+    re.captures(book_link).and_then(|cap| {
+        cap.name("book_id")
+            .map(|book_id| book_id.as_str())
+            .map(|book_id| book_id.parse::<u32>().unwrap())
+    })
+}
+
 fn book_from_xml_node(node: Node) -> Book {
-    let mut b = Book {
-        id: -1,
+    let mut book = Book {
+        id: 0,
         description: "".to_owned(),
         title: "".to_owned(),
         num_pages: None,
@@ -59,17 +78,24 @@ fn book_from_xml_node(node: Node) -> Book {
 
     for child_node in node.descendants() {
         match child_node.tag_name().name() {
-            "id" => {
-                b.id = child_node.text().unwrap().parse::<i64>().unwrap();
+            "link" => {
+                let parent = child_node.parent();
+                if parent.is_some() && parent.unwrap().tag_name().name() == "book" {
+                    let link_txt = child_node.text().unwrap();
+                    let book_id = extract_book_id_from_book_link(link_txt);
+                    book.id = book_id.expect(
+                        &format!("Could not get book id from <link> URL: {}", link_txt)
+                    );
+                }
             }
             "description" => {
-                b.description = String::from(child_node.text().unwrap());
+                book.description = String::from(child_node.text().unwrap());
             }
             "title" => {
-                b.title = String::from(child_node.text().unwrap());
+                book.title = String::from(child_node.text().unwrap());
             }
             "num_pages" => {
-                b.num_pages = match child_node.text() {
+                book.num_pages = match child_node.text() {
                     Some(val) => Some(val.parse::<u32>().unwrap()),
                     _ => None,
                 }
@@ -77,7 +103,7 @@ fn book_from_xml_node(node: Node) -> Book {
             _ => {}
         }
     }
-    b
+    book
 }
 
 #[cfg(test)]
