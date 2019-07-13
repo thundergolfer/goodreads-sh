@@ -57,7 +57,7 @@ pub fn parse_shelf(shelf_xml: &str) -> Result<Shelf, roxmltree::Error> {
 fn extract_book_id_from_book_link(book_link: &str) -> Option<u32> {
     let re: Regex = Regex::new(r"(?x)
         ^https://www.goodreads.com/book/show/(?P<book_id>[\d]+)[\-|\.]
-        ([[:word:]]+\-)*
+        ([[:word:]]+-)*
         ([[:word:]]+_)*
         [[:word:]]+$
         ").unwrap();
@@ -118,12 +118,26 @@ mod tests {
         text
     }
 
+//    #[test]
+//    fn test_parse_shelf() {
+//        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+//        path.push("src/api_responses/currently_reading_shelf_resp.xml");
+//        println!("{}", path.display());
+//        let text = load_file(&path);
+//        parse_shelf(&text);
+//    }
+
     #[test]
-    fn test_parse_shelf() {
-        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        path.push("src/api_responses/currently_reading_shelf_resp.xml");
-        println!("{}", path.display());
-        let text = load_file(&path);
-        parse_shelf(&text);
+    fn test_extract_book_id_from_book_link() {
+        let cases = vec![
+            ("https://www.goodreads.com/book/show/1234.The_First_Book", 1234 as u32),
+            ("https://www.goodreads.com/book/show/4444-The-Second-Book", 4444 as u32),
+            ("https://www.goodreads.com/book/show/934343-The_Book", 934343 as u32),
+        ];
+
+        for (url, book_id) in cases.iter() {
+            let actual = extract_book_id_from_book_link(url);
+            assert_eq!(actual, Some(*book_id));
+        }
     }
 }
