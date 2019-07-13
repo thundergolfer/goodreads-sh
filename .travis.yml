@@ -45,6 +45,8 @@ matrix:
         - PKG_CONFIG_ALLOW_CROSS=1
       rust: nightly
       before_script: rustup target add $TARGET
+      before_install:
+        - sudo apt install -y libssl-dev
       script: cargo build --release --target $TARGET --locked
       addons:
         apt:
