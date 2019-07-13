@@ -1,12 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use super::models;
-use reqwest::{Client, Response, Method, StatusCode};
-use reqwest::header::HeaderValue;
+use reqwest::{Client, StatusCode};
 use oauth_client;
 use std::collections::HashMap;
-use std::hash::Hash;
-use std::collections::hash_map::RandomState;
 use std::borrow::Cow;
 
 pub mod goodreads_api_endpoints {
@@ -32,9 +29,45 @@ pub struct GoodreadsApiClient {
 }
 
 impl GoodreadsApiClient {
-    pub fn user_id(&self) -> usize {
-        // TODO(Jonathon): Implement
-        10000
+    pub fn user_id(&self) -> Result<u32, String> {
+        let res = make_oauthd_request(
+            self,
+            reqwest::Method::GET,
+            goodreads_api_endpoints::USER_ID,
+            None,
+        );
+
+        match res {
+            Ok(mut resp) => {
+                match resp.status() {
+                    StatusCode::OK => {
+                        let resp_xml = resp.text().unwrap();
+                        let doc = match roxmltree::Document::parse(&resp_xml) {
+                            Ok(doc) => doc,
+                            Err(e) => {
+                                println!("Error: {}.", e);
+                                return Err(String::from("Failed to parse XML response"));
+                            }
+                        };
+
+                        let user_nodes: Vec<roxmltree::Node> = doc.descendants()
+                            .filter(|n| n.has_tag_name("user"))
+                            .collect::<Vec<_>>();
+
+                        if user_nodes.len() != 1 {
+                            Err(String::from("fuck"))
+                        } else {
+                            let user_node = user_nodes.get(0).unwrap();
+                            let id = user_node.attribute("id").unwrap();
+                            let id = id.parse::<u32>().unwrap();
+                            Ok(id)
+                        }
+                    },
+                    _ => Err(String::from("Request to get user id failed"))
+                }
+            },
+            Err(err) => Err(String::from("Request to get user id failed"))
+        }
     }
 
     pub fn update_status(
@@ -68,7 +101,7 @@ impl GoodreadsApiClient {
             self,
             reqwest::Method::POST,
             goodreads_api_endpoints::UPDATE_STATUS,
-            req_params,
+            Some(&req_params),
         );
 
         match res {
@@ -86,14 +119,14 @@ impl GoodreadsApiClient {
     ) -> Result<String, String> {
         let mut req_params = HashMap::new();
         let _ = req_params.insert(Cow::from("id"), Cow::from(self.user_id.to_string()));
-        let _ = req_params.insert(Cow::from("shelf"), Cow::from("currently-reading"));
+        let _ = req_params.insert(Cow::from("shelf"), Cow::from(shelf_name));
         let _ = req_params.insert(Cow::from("key"), Cow::from(self.auth.developer_key.clone()));
 
         let res = make_oauthd_request(
             self,
             reqwest::Method::GET,
             goodreads_api_endpoints::LIST_SHELF,
-            req_params,
+            Some(&req_params),
         );
 
         match res {
@@ -134,7 +167,7 @@ fn make_oauthd_request(
     gr_client: &GoodreadsApiClient,
     method: reqwest::Method,
     url: &str,
-    req_params: oauth_client::ParamList,
+    req_params: Option<&oauth_client::ParamList>,
 ) -> Result<reqwest::Response, reqwest::Error> {
     let consumer = oauth_client::Token::new(
         gr_client.auth.developer_key.clone(),
@@ -144,18 +177,23 @@ fn make_oauthd_request(
         gr_client.auth.oauth_access_token.clone(),
             gr_client.auth.oauth_access_token_secret.clone(),
     );
-    let (header, body) = oauth_client::authorization_header(
+    let (header, _body) = oauth_client::authorization_header(
         method.as_str(),
         url,
         &consumer,
         Some(&access),
-        Some(&req_params),
+        req_params,
     );
     let req = gr_client.client
         .request(method, url)
-        .header(reqwest::header::AUTHORIZATION, header)
-        .form(&req_params);
-    req.send()
+        .header(reqwest::header::AUTHORIZATION, header);
+    if req_params.is_some() {
+        let req = req.form(&req_params);
+        req.send()
+    } else {
+        req.send()
+    }
+
 }
 
 #[derive(Clone,Copy,Debug)]

@@ -23,9 +23,9 @@ enum Cli {
     #[structopt(name = "add-to-shelf")]
     /// TODO: Add a help msg here for Book
     AddToShelf {},
-    #[structopt(name = "author")]
-    /// TODO: Add a help msg here for Author
-    Author {},
+    #[structopt(name = "me")]
+    /// TODO: Add a help msg here for Me
+    Me {},
     #[structopt(name = "update")]
     /// TODO: Add a help msg here for User
     Update {
@@ -278,7 +278,13 @@ fn run_command(
                 Err(err) => println!("fuck: {}", err),
             }
         }
-        Cli::Author {} => println!("'author' not yet implemented."),
+        Cli::Me {} => {
+            let user_id = gr_client.user_id();
+            match user_id {
+                Ok(id) => println!("Your user id is: {}", id),
+                Err(err) => println!("Error: {}", err),
+            }
+        },
         Cli::Authenticate {} => println!("Already authenticated."),
     }
 }

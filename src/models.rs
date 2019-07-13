@@ -1,7 +1,4 @@
 use std::fmt::{self, Display, Formatter};
-use std::io::Read;
-use std::path::PathBuf;
-use std::fs;
 use regex::Regex;
 
 use roxmltree::Node;
