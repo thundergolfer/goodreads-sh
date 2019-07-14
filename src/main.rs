@@ -190,50 +190,10 @@ fn run_command(
 ) {
     match *args {
         Cli::AddToShelf {} => {
-            let consumer = oauth_client::Token::new(
-                app_config.developer_key.clone(),
-                app_config.developer_secret.clone(),
-            );
-            let access = oauth_client::Token::new(
-                app_config
-                    .access_token
-                    .as_ref()
-                    .expect("Access token should never be None here")
-                    .clone(),
-                app_config
-                    .access_token_secret
-                    .as_ref()
-                    .expect("Access token secret should never be None here")
-                    .clone(),
-            );
-            let mut req_param = HashMap::new();
-            let _ = req_param.insert("name".into(), "to-read".into());
-            let _ = req_param.insert("book_id".into(), "9282".into());
-            let (header, body) = oauth_client::authorization_header(
-                "POST",
-                api_client::goodreads_api_endpoints::ADD_TO_SHELF,
-                &consumer,
-                Some(&access),
-                Some(&req_param),
-            );
-            let client = Client::new();
-            let req = client
-                .post(api_client::goodreads_api_endpoints::ADD_TO_SHELF)
-                .header(reqwest::header::AUTHORIZATION, header)
-                .header(
-                    reqwest::header::CONTENT_TYPE,
-                    HeaderValue::from_static("application/x-www-form-urlencoded"),
-                )
-                .body(body);
-            let resp = req.send();
-            match resp {
-                Ok(result) => {
-                    if result.status() == StatusCode::CREATED {
-                        println!("win");
-                    } else {
-                        println!("fuck");
-                    }
-                }
+            // TODO(Jonathon): Stop hardcoding these
+            let res = gr_client.add_to_shelf(9282, "to-read");
+            match res {
+                Ok(_) => println!("Added ✅"),
                 Err(err) => println!("fuck: {}", err),
             }
         }

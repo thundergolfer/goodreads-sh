@@ -1,8 +1,8 @@
 use regex::Regex;
-use std::fs;
-use std::path::PathBuf;
 use std::fmt::{self, Display, Formatter};
+use std::fs;
 use std::io::Read;
+use std::path::PathBuf;
 
 use roxmltree::Node;
 
