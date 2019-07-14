@@ -175,6 +175,24 @@ fn add_access_token_to_config(client_config_path: PathBuf, oauth_access_token: &
     fs::write(client_config_path, toml).unwrap();
 }
 
+fn add_user_id_to_config(
+    client_config_path: PathBuf,
+    gr_client: &api_client::GoodreadsApiClient,
+) -> Result<(), String> {
+    let value = fs::read_to_string(client_config_path.clone()).unwrap();
+    let mut config: GoodReadsConfig = toml::from_str(&value).unwrap();
+    let user_id = gr_client.user_id();
+    match user_id {
+        Ok(id) => {
+            config.user_id = Some(id);
+            let toml = toml::to_string(&config).unwrap();
+            fs::write(client_config_path, toml).unwrap();
+            Ok(())
+        }
+        Err(err) => Err(err),
+    }
+}
+
 fn client_config_path() -> PathBuf {
     let home_directory: PathBuf = dirs::home_dir().expect("Could not determined home directory.");
     let mut config_file_path: PathBuf = PathBuf::new();
@@ -269,11 +287,11 @@ fn main() {
     let access_token_res: Result<String, _> = cfg.get_str("access_token");
     let access_token_secret_res: Result<String, _> = cfg.get_str("access_token_secret");
     let user_id_res: Result<i64, _> = cfg.get_int("user_id");
-    let user_id = user_id_res.unwrap() as u32;
 
     // TODO(Jonathon): Check for both access_token and access_token_secret
     match access_token_res {
         Ok(access_token) => {
+            let user_id = user_id_res.unwrap() as u32;
             let access_token_secret = access_token_secret_res.unwrap();
             let app_config = GoodReadsConfig {
                 developer_secret: dev_secret.clone(),
@@ -295,9 +313,21 @@ fn main() {
         Err(_err) => {
             match args {
                 Cli::Authenticate {} => {
-                    let oauth_access_token = get_oauth_token(dev_key, dev_secret);
-                    add_access_token_to_config(client_config_path(), &oauth_access_token)
-                    // TODO(Jonathon): Need to also add user_id at this time
+                    let oauth_access_token = get_oauth_token(dev_key.clone(), dev_secret.clone());
+                    println!("Adding oauth access token to config...");
+                    add_access_token_to_config(client_config_path(), &oauth_access_token);
+                    let gr_client = api_client::GoodreadsApiClient::new(
+                        0, // TODO(Jonathon): This is an invalid value, though it will never be used. Still should clean this up.
+                        &dev_key,
+                        &dev_secret,
+                        &oauth_access_token.token,
+                        &oauth_access_token.token_secret,
+                    );
+                    println!("Adding your user id to config...");
+                    match add_user_id_to_config(client_config_path(), &gr_client) {
+                        Ok(_) => println!("✅"),
+                        Err(err) => println!("Error: {}", err),
+                    }
                 }
                 _ => println!("OAuth not set up. Please run: goodreads-sh auth"),
             }
