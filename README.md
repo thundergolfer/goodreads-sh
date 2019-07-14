@@ -13,13 +13,22 @@
 
 ## Installation
 
+> ❗️ **Note:** This project is currently in *Alpha* stages of development. Installation not recommended until `1.0` release is out.
+
 #### Homebrew
 
-`coming soon` 
+Easiest way to install on macOS is by using [Homebrew](https://brew.sh/).
 
-#### Manual Installtion
+```
+$ brew tap thundergolfer/homebrew-formulae
+$ brew install goodreads-sh
+```
 
-`coming soon`
+#### Manual Installation
+
+You can get binaries for OSX and Linux on this project's [releases page](https://github.com/thundergolfer/goodreads-sh/releases).
+
+After downloading, you unzip the `.tar.gz` and move the binary to a place that's on your path (`$PATH` on Linux/OSX).
 
 #### [Required] Developer key
 `goodreads-sh` requires your developer key and developer secret in order to read-write to the goodreads API. Obtaining them is fairly trivial.
