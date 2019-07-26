@@ -49,6 +49,29 @@ impl GoodreadsApiClient {
         }
     }
 
+    pub fn remove_from_shelf(&self, book_id: u32, shelf_name: &str) -> Result<(), String> {
+        /// NOTE: Ugly API design from Goodreads has us calling the ADD_TO_SHELF endpoint to remove
+        let mut req_params = HashMap::new();
+        let _ = req_params.insert(Cow::from("name"), Cow::from(shelf_name));
+        let _ = req_params.insert(Cow::from("book_id"), Cow::from(book_id.to_string()));
+        let _ = req_params.insert(Cow::from("a"), Cow::from("remove"));
+
+        let res = make_oauthd_request(
+            self,
+            reqwest::Method::POST,
+            goodreads_api_endpoints::ADD_TO_SHELF,
+            Some(&req_params),
+        );
+
+        match res {
+            Ok(mut resp) => match resp.status() {
+                StatusCode::OK => Ok(()),
+                _ => Err(format!("Request failed. Status code: {}", resp.status())),
+            },
+            Err(err) => Err(format!("Request failed: {}", err)),
+        }
+    }
+
     pub fn user_id(&self) -> Result<u32, String> {
         let res = make_oauthd_request(
             self,

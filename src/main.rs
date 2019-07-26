@@ -32,6 +32,9 @@ enum Cli {
         #[structopt(short = "a")]
         all: bool,
     },
+    #[structopt(name = "finished")]
+    /// Tell Goodreads you've finished a book you're currently reading
+    Finished {},
     /// Setup OAuth for the CLI (1 time only)
     #[structopt(name = "auth")]
     Authenticate {},
@@ -213,6 +216,31 @@ fn run_command(
             match res {
                 Ok(_) => println!("Added ✅"),
                 Err(err) => println!("fuck: {}", err),
+            }
+        }
+        Cli::Finished {} => {
+            let res = gr_client.list_shelf("currently-reading")
+                .and_then(|shelf_xml| models::parse_shelf(&shelf_xml).map_err(|err| err.to_string()))
+                .and_then(|shelf| {
+                    for (i, book) in shelf.books.iter().enumerate() {
+                        println!("{}. {}", i + 1, book);
+                    }
+                    println!("\nWhich one have you finished?");
+                    let choice = get_choice(1, shelf.books.len() as u32);
+                    let book_to_update = shelf
+                        .books
+                        .get((choice as usize) - 1)
+                        .expect("Should never here access an invalid index");
+                    Ok(book_to_update.id)
+                })
+                .and_then(|id| {
+                    gr_client.remove_from_shelf(id, "currently-reading")?;
+                    Ok(id)
+                })
+                .and_then(|id| gr_client.add_to_shelf(id, "read"));
+            match res {
+                Ok(_) => println!("✅ Nice work!"),
+                Err(err) => print!("Error: {}", err)
             }
         }
         Cli::Update { .. } => {
