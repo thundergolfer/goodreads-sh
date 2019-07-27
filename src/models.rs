@@ -12,6 +12,7 @@ pub struct Shelf {
     pub books: Vec<Book>,
 }
 
+#[derive(Clone, Debug)]
 pub struct Book {
     pub id: u32,
     pub description: String,

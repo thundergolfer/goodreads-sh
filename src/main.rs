@@ -11,11 +11,13 @@ use std::io::stdin;
 use std::path::PathBuf;
 use structopt::StructOpt;
 use url::form_urlencoded;
+use std::process::exit;
 
 extern crate dirs;
 
 mod api_client;
 mod models;
+mod ux;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "goodreads-sh", about = "CLI interface to Goodreads.com")]
@@ -30,8 +32,8 @@ enum Cli {
     #[structopt(name = "update")]
     /// Update progress on a book you're currently reading
     Update {
-        #[structopt(short = "a")]
-        all: bool,
+        #[structopt(short = "t", long = "title")]
+        title: Option<String>,
     },
     #[structopt(name = "finished")]
     /// Tell Goodreads you've finished a book you're currently reading
@@ -210,7 +212,7 @@ fn run_command(
     app_config: &GoodReadsConfig,
     gr_client: &api_client::GoodreadsApiClient,
 ) {
-    match *args {
+    match args {
         Cli::AddToShelf {} => {
             // TODO(Jonathon): Stop hardcoding these
             let res = gr_client.add_to_shelf(9282, "to-read");
@@ -227,7 +229,7 @@ fn run_command(
                         println!("{}. {}", i + 1, book);
                     }
                     println!("\nWhich one have you finished?");
-                    let choice = get_choice(1, shelf.books.len() as u32);
+                    let choice = ux::get_choice(1, shelf.books.len() as u32);
                     let book_to_update = shelf
                         .books
                         .get((choice as usize) - 1)
@@ -244,35 +246,65 @@ fn run_command(
                 Err(err) => print!("Error: {}", err)
             }
         }
-        Cli::Update { .. } => {
+        Cli::Update { title } => {
             let res = gr_client.list_shelf("currently-reading");
             match res {
                 Ok(shelf_xml) => {
                     let shelf: models::Shelf = models::parse_shelf(&shelf_xml).unwrap();
 
-                    for (i, book) in shelf.books.iter().enumerate() {
-                        println!("{}. {}", i + 1, book);
-                    }
-                    println!("Choose a book to update progress on:");
-                    let choice = get_choice(1, shelf.books.len() as u32);
-                    let book_to_update = shelf
-                        .books
-                        .get((choice as usize) - 1)
-                        .expect("Should never here access an invalid index");
+                    let book_to_update = match title {
+                        Some(t) => {
+                            // TODO(Jonathon): This doesn't handle 0-len shelves
+                            let closest = ux::select_by_edit_distance(&shelf, &t);
+                            let b = closest.0.unwrap();
+                            let dist_from_target = closest.1.unwrap();
+                            // If what user typed and the closest book title are exactly alike (0) or only 1 char difference (1),
+                            // then just assume a match. Otherwise, check that we are updating the right book.
+                            if dist_from_target < 2 {
+                                b
+                            } else {
+                                println!(
+                                    "❓: You typed '{}'. The closest book found in your 'currently-reading' shelf is '{}'. Is that a match?: y/n",
+                                    t,
+                                    b.title.clone(),
+                                );
+                                let confirmed = ux::get_confirm();
+                                if confirmed {
+                                    b
+                                } else {
+                                    println!("Try retyping the book title.");
+                                    std::process::exit(0);
+                                }
+                            }
+                        },
+                        None => {
+                            for (i, book) in shelf.books.iter().enumerate() {
+                                println!("{}. {}", i + 1, book);
+                            }
+                            println!("Choose a book to update progress on:");
+                            // TODO(Jonathon): Handle case where shelf has no books
+                            let choice = ux::get_choice(1, shelf.books.len() as u32);
+                            shelf.books
+                                .get((choice as usize) - 1)
+                                .expect("Should never here access an invalid index")
+                                .clone()
+                        }
+                    };
+
                     match book_to_update.num_pages {
                         Some(val) => {
                             println!("What page are you on now? (Max page is {}):", val);
-                            let current_page = get_choice(1, val);
+                            let current_page = ux::get_choice(1, val);
                             println!("You're on {}!", current_page);
                             gr_client
-                                .update_status(Some(book_to_update), Some(current_page), None, None)
+                                .update_status(Some(&book_to_update), Some(current_page), None, None)
                                 .unwrap();
                         }
                         None => {
                             println!("What page are you on now?:");
-                            let current_page = get_choice(1, 10_000);
+                            let current_page = ux::get_choice(1, 10_000);
                             gr_client
-                                .update_status(Some(book_to_update), Some(current_page), None, None)
+                                .update_status(Some(&book_to_update), Some(current_page), None, None)
                                 .unwrap();
                         }
                     }
@@ -288,21 +320,6 @@ fn run_command(
             }
         }
         Cli::Authenticate {} => println!("Already authenticated."),
-    }
-}
-
-fn get_choice(min: u32, max: u32) -> u32 {
-    loop {
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input);
-
-        let value = input.trim().parse();
-        match value {
-            Ok(num) => return num,
-            Err(_) => {
-                println!("Please input a choice in the range [{}, {}]", min, max);
-            }
-        }
     }
 }
 
