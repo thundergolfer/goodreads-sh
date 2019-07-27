@@ -25,7 +25,7 @@ environment:
     - TARGET: x86_64-pc-windows-msvc
       RUST_VERSION: nightly
 
-install:
+install_script:
   - ps: >-
       If ($Env:TARGET -eq 'x86_64-pc-windows-gnu') {
         $Env:PATH += ';C:\msys64\mingw64\bin'
