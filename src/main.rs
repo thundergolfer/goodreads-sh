@@ -19,6 +19,7 @@ mod models;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "goodreads-sh", about = "CLI interface to Goodreads.com")]
+#[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
 enum Cli {
     #[structopt(name = "add-to-shelf")]
     /// Add a book to an existing shelf [In Progress]
