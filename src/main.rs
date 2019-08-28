@@ -29,6 +29,12 @@ enum Cli {
     #[structopt(name = "me")]
     /// Show your User ID
     Me {},
+    #[structopt(name = "new")]
+    /// Tell Goodreads you've started a new book
+    New {
+        #[structopt(short = "t", long = "title")]
+        title: Option<String>,
+    },
     #[structopt(name = "update")]
     /// Update progress on a book you're currently reading
     Update {
@@ -220,6 +226,9 @@ fn run_command(
                 Ok(_) => println!("Added ✅"),
                 Err(err) => println!("fuck: {}", err),
             }
+        }
+        Cli::New { title } => {
+            println!("Not yet implemented")
         }
         Cli::Finished {} => {
             let res = gr_client.list_shelf("currently-reading")
