@@ -16,7 +16,7 @@ use std::process::exit;
 extern crate dirs;
 
 mod api_client;
-mod models;
+pub mod models;
 mod ux;
 
 #[derive(Debug, StructOpt)]
@@ -228,6 +228,15 @@ fn run_command(
             }
         }
         Cli::New { title } => {
+            let mut answer = String::new();
+            let titleQuery = title.as_ref().unwrap_or_else(|| {
+                println!("Enter a title to search:");
+                stdin()
+                    .read_line(&mut answer)
+                    .expect("Failed to read your input");
+                &answer
+            });
+            let search_results  = gr_client.search_books(&titleQuery, "title");
             println!("Not yet implemented")
         }
         Cli::Finished {} => {

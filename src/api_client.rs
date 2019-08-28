@@ -11,6 +11,7 @@ pub mod goodreads_api_endpoints {
     pub const LIST_SHELF: &'static str = "https://www.goodreads.com/review/list?v=2";
     pub const ADD_TO_SHELF: &'static str = "https://www.goodreads.com/shelf/add_to_shelf.xml";
     pub const UPDATE_STATUS: &'static str = "https://www.goodreads.com/user_status.json";
+    pub const SEARCH_BOOKS: &'static str = "https://www.goodreads.com/search/index.xml";
 }
 
 #[derive(Serialize, Deserialize)]
@@ -66,6 +67,32 @@ impl GoodreadsApiClient {
         match res {
             Ok(mut resp) => match resp.status() {
                 StatusCode::OK => Ok(()),
+                _ => Err(format!("Request failed. Status code: {}", resp.status())),
+            },
+            Err(err) => Err(format!("Request failed: {}", err)),
+        }
+    }
+
+    pub fn search_books(&self, query: &str, search_field: &str) -> Result<Vec<models::Book>, String> {
+        let books = Vec::new();
+        let mut req_params = HashMap::new();
+        let _ = req_params.insert(Cow::from("q"), Cow::from(query));
+        let _ = req_params.insert(Cow::from("search[field]"), Cow::from(search_field));
+        let _ = req_params.insert(Cow::from("key"), Cow::from(self.auth.developer_key.clone()));
+
+        let res = make_oauthd_request(
+            self,
+            reqwest::Method::GET,
+            goodreads_api_endpoints::SEARCH_BOOKS,
+            Some(&req_params),
+        );
+
+        match res {
+            Ok(mut resp) => match resp.status() {
+                StatusCode::OK => {
+                    println!("{}", resp.text().unwrap());
+                    Ok(books)
+                },
                 _ => Err(format!("Request failed. Status code: {}", resp.status())),
             },
             Err(err) => Err(format!("Request failed: {}", err)),
