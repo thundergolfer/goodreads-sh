@@ -35,7 +35,9 @@ impl Display for Book {
 }
 
 // TODO(Jonathon): These XML -> Models methods shouldn't be in this module
-pub fn parse_book_search_results(results_xml: &str) -> Result<Vec<(u32, String, String)>, roxmltree::Error> {
+pub fn parse_book_search_results(
+    results_xml: &str,
+) -> Result<Vec<(u32, String, String)>, roxmltree::Error> {
     let mut book_results: Vec<(u32, String, String)> = Vec::new();
     let doc = match roxmltree::Document::parse(results_xml) {
         Ok(doc) => doc,
@@ -53,7 +55,9 @@ pub fn parse_book_search_results(results_xml: &str) -> Result<Vec<(u32, String, 
     Ok(book_results)
 }
 
-fn parse_search_result_from_best_book(best_book_xml_node: Node) -> Result<(u32, String, String), roxmltree::Error> {
+fn parse_search_result_from_best_book(
+    best_book_xml_node: Node,
+) -> Result<(u32, String, String), roxmltree::Error> {
     let mut result: (u32, String, String) = Default::default();
     for child_node in best_book_xml_node.descendants() {
         match child_node.tag_name().name() {
