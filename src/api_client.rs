@@ -73,7 +73,7 @@ impl GoodreadsApiClient {
         }
     }
 
-    pub fn search_books(&self, query: &str, search_field: &str) -> Result<Vec<models::Book>, String> {
+    pub fn search_books(&self, query: &str, search_field: &str) -> Result<String, String> {
         let books = Vec::new();
         let mut req_params = HashMap::new();
         let _ = req_params.insert(Cow::from("q"), Cow::from(query));
@@ -89,10 +89,7 @@ impl GoodreadsApiClient {
 
         match res {
             Ok(mut resp) => match resp.status() {
-                StatusCode::OK => {
-                    println!("{}", resp.text().unwrap());
-                    Ok(books)
-                },
+                StatusCode::OK => Ok(resp.text().unwrap()),
                 _ => Err(format!("Request failed. Status code: {}", resp.status())),
             },
             Err(err) => Err(format!("Request failed: {}", err)),

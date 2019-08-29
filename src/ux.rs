@@ -31,13 +31,19 @@ pub fn get_confirm() -> bool {
     }
 }
 
-pub fn select_by_edit_distance(shelf: &models::Shelf, target: &str) -> (Option<models::Book>, Option<usize>) {
+pub fn select_by_edit_distance(
+    shelf: &models::Shelf,
+    target: &str,
+) -> (Option<models::Book>, Option<usize>) {
     let mut books = shelf.books.to_vec();
     books.sort_by_key(|b| levenshtein_distance(&b.title, target));
 
     let closest: Option<&models::Book> = books.get(0);
     match closest {
-        Some(b) => (Some(b.clone()), Some(levenshtein_distance(&b.title, target))),
+        Some(b) => (
+            Some(b.clone()),
+            Some(levenshtein_distance(&b.title, target)),
+        ),
         None => (None, None),
     }
 }

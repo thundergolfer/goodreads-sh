@@ -9,9 +9,9 @@ use std::collections::HashMap;
 use std::fs;
 use std::io::stdin;
 use std::path::PathBuf;
+use std::process::exit;
 use structopt::StructOpt;
 use url::form_urlencoded;
-use std::process::exit;
 
 extern crate dirs;
 
@@ -236,12 +236,15 @@ fn run_command(
                     .expect("Failed to read your input");
                 &answer
             });
-            let search_results  = gr_client.search_books(&titleQuery, "title");
+            let search_results = gr_client.search_books(&titleQuery, "title");
             println!("Not yet implemented")
         }
         Cli::Finished {} => {
-            let res = gr_client.list_shelf("currently-reading")
-                .and_then(|shelf_xml| models::parse_shelf(&shelf_xml).map_err(|err| err.to_string()))
+            let res = gr_client
+                .list_shelf("currently-reading")
+                .and_then(|shelf_xml| {
+                    models::parse_shelf(&shelf_xml).map_err(|err| err.to_string())
+                })
                 .and_then(|shelf| {
                     for (i, book) in shelf.books.iter().enumerate() {
                         println!("{}. {}", i + 1, book);
@@ -261,7 +264,7 @@ fn run_command(
                 .and_then(|id| gr_client.add_to_shelf(id, "read"));
             match res {
                 Ok(_) => println!("✅ Nice work!"),
-                Err(err) => print!("Error: {}", err)
+                Err(err) => print!("Error: {}", err),
             }
         }
         Cli::Update { title } => {
@@ -294,7 +297,7 @@ fn run_command(
                                     std::process::exit(0);
                                 }
                             }
-                        },
+                        }
                         None => {
                             for (i, book) in shelf.books.iter().enumerate() {
                                 println!("{}. {}", i + 1, book);
@@ -302,7 +305,8 @@ fn run_command(
                             println!("Choose a book to update progress on:");
                             // TODO(Jonathon): Handle case where shelf has no books
                             let choice = ux::get_choice(1, shelf.books.len() as u32);
-                            shelf.books
+                            shelf
+                                .books
                                 .get((choice as usize) - 1)
                                 .expect("Should never here access an invalid index")
                                 .clone()
@@ -315,14 +319,24 @@ fn run_command(
                             let current_page = ux::get_choice(1, val);
                             println!("You're on {}!", current_page);
                             gr_client
-                                .update_status(Some(&book_to_update), Some(current_page), None, None)
+                                .update_status(
+                                    Some(&book_to_update),
+                                    Some(current_page),
+                                    None,
+                                    None,
+                                )
                                 .unwrap();
                         }
                         None => {
                             println!("What page are you on now?:");
                             let current_page = ux::get_choice(1, 10_000);
                             gr_client
-                                .update_status(Some(&book_to_update), Some(current_page), None, None)
+                                .update_status(
+                                    Some(&book_to_update),
+                                    Some(current_page),
+                                    None,
+                                    None,
+                                )
                                 .unwrap();
                         }
                     }
