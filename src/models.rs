@@ -21,11 +21,77 @@ pub struct Book {
     pub num_pages: Option<u32>,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct Author {
+    pub id: u32,
+    pub name: String,
+}
+
 impl Display for Book {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let shortened_desc = &self.description[..MAX_DESC_LEN];
         write!(f, "{}: {}...", self.title, shortened_desc)
     }
+}
+
+// TODO(Jonathon): These XML -> Models methods shouldn't be in this module
+pub fn parse_book_search_results(results_xml: &str) -> Result<Vec<(u32, String, String)>, roxmltree::Error> {
+    let mut book_results: Vec<(u32, String, String)> = Vec::new();
+    let doc = match roxmltree::Document::parse(results_xml) {
+        Ok(doc) => doc,
+        Err(e) => {
+            println!("Error: {}.", e);
+            return Err(e);
+        }
+    };
+
+    for node in doc.descendants() {
+        if node.is_element() && node.has_tag_name("best_book") {
+            book_results.push(parse_search_result_from_best_book(node).unwrap());
+        }
+    }
+    Ok(book_results)
+}
+
+fn parse_search_result_from_best_book(best_book_xml_node: Node) -> Result<(u32, String, String), roxmltree::Error> {
+    let mut result: (u32, String, String) = Default::default();
+    for child_node in best_book_xml_node.descendants() {
+        match child_node.tag_name().name() {
+            "id" => {
+                let id_str = child_node.text().unwrap();
+                // Don't set it twice. The second is probably an author ID
+                if result.0 == 0 {
+                    result.0 = id_str.parse::<u32>().unwrap();
+                }
+            }
+            "title" => {
+                result.1 = String::from(child_node.text().unwrap());
+            }
+            "author" => {
+                let author = parse_author_node(child_node).unwrap();
+                result.2 = author.name;
+            }
+            _ => {}
+        }
+    }
+    Ok(result)
+}
+
+fn parse_author_node(author_node: Node) -> Result<Author, roxmltree::Error> {
+    let mut author: Author = Default::default();
+
+    for child_node in author_node.descendants() {
+        match child_node.tag_name().name() {
+            "id" => {
+                author.id = child_node.text().unwrap().parse::<u32>().unwrap();
+            }
+            "name" => {
+                author.name = String::from(child_node.text().unwrap());
+            }
+            _ => {}
+        }
+    }
+    Ok(author)
 }
 
 pub fn parse_shelf(shelf_xml: &str) -> Result<Shelf, roxmltree::Error> {

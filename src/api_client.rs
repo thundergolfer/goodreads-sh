@@ -74,7 +74,6 @@ impl GoodreadsApiClient {
     }
 
     pub fn search_books(&self, query: &str, search_field: &str) -> Result<String, String> {
-        let books = Vec::new();
         let mut req_params = HashMap::new();
         let _ = req_params.insert(Cow::from("q"), Cow::from(query));
         let _ = req_params.insert(Cow::from("search[field]"), Cow::from(search_field));

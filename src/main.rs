@@ -230,14 +230,36 @@ fn run_command(
         Cli::New { title } => {
             let mut answer = String::new();
             let titleQuery = title.as_ref().unwrap_or_else(|| {
-                println!("Enter a title to search:");
+                println!("🔎 Enter a title to search:");
                 stdin()
                     .read_line(&mut answer)
                     .expect("Failed to read your input");
                 &answer
             });
-            let search_results = gr_client.search_books(&titleQuery, "title");
-            println!("Not yet implemented")
+            let res = gr_client
+                .search_books(&titleQuery, "title")
+                .and_then(|xml| {
+                    models::parse_book_search_results(&xml).map_err(|err| err.to_string())
+                })
+                .and_then(|results| {
+                    for (i, result) in results.iter().enumerate() {
+                        println!("{}. {} - {}", i + 1, result.1, result.2);
+                    }
+                    println!("\nWhich one have you started?");
+                    let choice = ux::get_choice(1, results.len() as u32);
+                    let book_to_update = results
+                        .get((choice as usize) - 1)
+                        .expect("Should never here access an invalid index");
+                    Ok(book_to_update.0)
+                })
+                .and_then(|id| {
+                    gr_client.add_to_shelf(id, "currently-reading")?;
+                    Ok(id)
+                });
+            match res {
+                Ok(_) => println!("✅ Nice work!"),
+                Err(err) => print!("Error: {}", err),
+            }
         }
         Cli::Finished {} => {
             let res = gr_client
