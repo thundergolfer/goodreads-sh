@@ -3,8 +3,11 @@ use std::fmt::{self, Display, Formatter};
 use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
+use std::error::Error;
 
 use roxmltree::Node;
+
+type BoxResult<T> = Result<T, Box<Error>>;
 
 const MAX_DESC_LEN: usize = 20;
 
@@ -49,7 +52,10 @@ pub fn parse_book_search_results(
 
     for node in doc.descendants() {
         if node.is_element() && node.has_tag_name("best_book") {
-            book_results.push(parse_search_result_from_best_book(node).unwrap());
+            match parse_search_result_from_best_book(node) {
+                Ok(r) => book_results.push(r),
+                Err(err) => {}
+            }
         }
     }
     Ok(book_results)
@@ -130,11 +136,14 @@ fn extract_book_id_from_book_link(book_link: &str) -> Option<u32> {
         [[:word:]]+$
         ",
     )
-    .unwrap();
+    .expect("Regex should always compile");
     re.captures(book_link).and_then(|cap| {
         cap.name("book_id")
             .map(|book_id| book_id.as_str())
-            .map(|book_id| book_id.parse::<u32>().unwrap())
+            .map(|book_id| book_id.parse::<u32>())
+    }).and_then(|parse_res| match parse_res {
+        Ok(num) => Some(num),
+        Err(err) => None,
     })
 }
 
@@ -152,7 +161,7 @@ fn book_from_xml_node(node: Node) -> Book {
                 let parent = child_node.parent();
                 // Don't attempt to parse the <link> node that is within the <author> node.
                 if parent.is_some() && parent.unwrap().tag_name().name() == "book" {
-                    let link_txt = child_node.text().unwrap();
+                    let link_txt = child_node.text().unwrap_or("");
                     let book_id = extract_book_id_from_book_link(link_txt);
                     book.id = book_id.expect(&format!(
                         "Could not get book id from <link> URL: {}",
@@ -161,16 +170,14 @@ fn book_from_xml_node(node: Node) -> Book {
                 }
             }
             "description" => {
-                book.description = String::from(child_node.text().unwrap());
+                book.description = String::from(child_node.text().unwrap_or(""));
             }
             "title" => {
-                book.title = String::from(child_node.text().unwrap());
+                book.title = String::from(child_node.text().unwrap_or(""));
             }
             "num_pages" => {
-                book.num_pages = match child_node.text() {
-                    Some(val) => Some(val.parse::<u32>().unwrap()),
-                    _ => None,
-                }
+                book.num_pages = child_node.text()
+                    .and_then(|txt| txt.parse::<u32>().ok());
             }
             _ => {}
         }
