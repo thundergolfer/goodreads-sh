@@ -373,7 +373,7 @@ fn run_command(
         Cli::Me {} => {
             let user_id = gr_client.user_id();
             match user_id {
-                Ok(id) => println!("Your user id is: {}", id),
+                Ok(id) => println!("👩‍🎓 Your user id is: {}", id),
                 Err(err) => println!("Error: {}", err),
             }
         }
@@ -381,7 +381,7 @@ fn run_command(
     }
 }
 
-fn main() {
+fn main() -> Result<(),String> {
     let args = Cli::from_args();
 
     let cfg: config::Config = match load_client_config(client_config_path()) {
@@ -391,27 +391,27 @@ fn main() {
             std::process::exit(1);
         }
     };
-    
-    let dev_key: String = cfg.get_str("developer_key").unwrap();
-    let dev_secret: String = cfg.get_str("developer_secret").unwrap();
+
+    let dev_key: String = cfg.get_str("developer_key")
+        .map_err(|err| err.to_string())?;
+    let dev_secret: String = cfg.get_str("developer_secret")
+        .map_err(|err| err.to_string())?;
+
     let access_token_res: Result<String, _> = cfg.get_str("access_token");
     let access_token_secret_res: Result<String, _> = cfg.get_str("access_token_secret");
     let user_id_res: Result<i64, _> = cfg.get_int("user_id");
 
-    // TODO(Jonathon): Check for both access_token and access_token_secret
-    match access_token_res {
-        Ok(access_token) => {
-            let user_id = user_id_res.unwrap() as u32;
-            let access_token_secret = access_token_secret_res.unwrap();
+    match (access_token_res, access_token_secret_res, user_id_res) {
+        (Ok(access_token), Ok(access_token_secret), Ok(user_id)) => {
             let app_config = GoodReadsConfig {
                 developer_secret: dev_secret.clone(),
                 developer_key: dev_key.clone(),
                 access_token_secret: Some(access_token_secret.clone()),
                 access_token: Some(access_token.clone()),
-                user_id: Some(user_id),
+                user_id: Some(user_id as u32),
             };
             let gr_client = api_client::GoodreadsApiClient::new(
-                user_id,
+                user_id as u32,
                 &dev_key,
                 &dev_secret,
                 &access_token,
@@ -420,7 +420,7 @@ fn main() {
 
             run_command(&args, &app_config, &gr_client);
         }
-        Err(_err) => {
+        _ => {
             match args {
                 Cli::Authenticate {} => {
                     let oauth_access_token = get_oauth_token(dev_key.clone(), dev_secret.clone());
@@ -443,4 +443,5 @@ fn main() {
             }
         }
     }
+    Ok(())
 }
