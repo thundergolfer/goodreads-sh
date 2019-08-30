@@ -5,9 +5,6 @@ use oauth_client;
 use reqwest::{Client, StatusCode};
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::error::Error;
-
-type BoxResult<T> = Result<T, Box<Error>>;
 
 pub mod goodreads_api_endpoints {
     pub const USER_ID: &'static str = "https://www.goodreads.com/api/auth_user";
@@ -45,7 +42,7 @@ impl GoodreadsApiClient {
         );
 
         match res {
-            Ok(mut resp) => match resp.status() {
+            Ok(resp) => match resp.status() {
                 StatusCode::CREATED => Ok(()),
                 _ => Err(format!("Request failed. Status code: {}", resp.status())),
             },
@@ -68,7 +65,7 @@ impl GoodreadsApiClient {
         );
 
         match res {
-            Ok(mut resp) => match resp.status() {
+            Ok(resp) => match resp.status() {
                 StatusCode::OK => Ok(()),
                 _ => Err(format!("Request failed. Status code: {}", resp.status())),
             },
@@ -134,7 +131,7 @@ impl GoodreadsApiClient {
                 }
                 _ => Err(String::from("Request to get user id failed")),
             },
-            Err(err) => Err(String::from("Request to get user id failed")),
+            Err(_err) => Err(String::from("Request to get user id failed")),
         }
     }
 

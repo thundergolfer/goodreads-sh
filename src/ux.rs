@@ -1,15 +1,18 @@
 use std::cmp::{self, Ord};
+use std::error::Error;
 
 use super::models;
 
-pub fn get_choice(min: u32, max: u32) -> u32 {
+type BoxResult<T> = Result<T, Box<dyn Error>>;
+
+pub fn get_choice(min: u32, max: u32) -> BoxResult<u32> {
     loop {
         let mut input = String::new();
-        std::io::stdin().read_line(&mut input);
+        let _res = std::io::stdin().read_line(&mut input)?;
 
-        let value = input.trim().parse();
+        let value = input.trim().parse::<u32>();
         match value {
-            Ok(num) => return num,
+            Ok(num) => return Ok(num),
             Err(_) => {
                 println!("Please input a choice in the range [{}, {}]", min, max);
             }
@@ -17,15 +20,15 @@ pub fn get_choice(min: u32, max: u32) -> u32 {
     }
 }
 
-pub fn get_confirm() -> bool {
+pub fn get_confirm() -> BoxResult<bool> {
     loop {
         let mut input = String::new();
-        std::io::stdin().read_line(&mut input);
+        std::io::stdin().read_line(&mut input)?;
         let value = &input.trim().to_lowercase();
 
         match value.as_ref() {
-            "y" => return true,
-            "n" => return false,
+            "y" => return Ok(true),
+            "n" => return Ok(false),
             _ => continue,
         }
     }

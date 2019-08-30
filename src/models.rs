@@ -1,13 +1,7 @@
 use regex::Regex;
 use std::fmt::{self, Display, Formatter};
-use std::fs;
-use std::io::Read;
-use std::path::PathBuf;
-use std::error::Error;
 
 use roxmltree::Node;
-
-type BoxResult<T> = Result<T, Box<Error>>;
 
 const MAX_DESC_LEN: usize = 20;
 
@@ -54,7 +48,7 @@ pub fn parse_book_search_results(
         if node.is_element() && node.has_tag_name("best_book") {
             match parse_search_result_from_best_book(node) {
                 Ok(r) => book_results.push(r),
-                Err(err) => {}
+                Err(_err) => {}
             }
         }
     }
@@ -68,14 +62,14 @@ fn parse_search_result_from_best_book(
     for child_node in best_book_xml_node.descendants() {
         match child_node.tag_name().name() {
             "id" => {
-                let id_str = child_node.text().unwrap();
+                let id_str = child_node.text().unwrap_or("");
                 // Don't set it twice. The second is probably an author ID
                 if result.0 == 0 {
                     result.0 = id_str.parse::<u32>().unwrap();
                 }
             }
             "title" => {
-                result.1 = String::from(child_node.text().unwrap());
+                result.1 = String::from(child_node.text().unwrap_or(""));
             }
             "author" => {
                 let author = parse_author_node(child_node).unwrap();
@@ -143,7 +137,7 @@ fn extract_book_id_from_book_link(book_link: &str) -> Option<u32> {
             .map(|book_id| book_id.parse::<u32>())
     }).and_then(|parse_res| match parse_res {
         Ok(num) => Some(num),
-        Err(err) => None,
+        Err(_err) => None,
     })
 }
 

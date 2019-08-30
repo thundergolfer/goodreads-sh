@@ -1,8 +1,6 @@
 use config;
 use oauth1::Token;
-use oauth_client;
-use reqwest::header::HeaderValue;
-use reqwest::{Client, StatusCode};
+use reqwest::{Client};
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -10,7 +8,6 @@ use std::error::Error;
 use std::fs;
 use std::io::stdin;
 use std::path::PathBuf;
-use std::process::exit;
 use structopt::StructOpt;
 use url::form_urlencoded;
 
@@ -18,7 +15,7 @@ extern crate dirs;
 #[macro_use]
 extern crate simple_error;
 
-type BoxResult<T> = Result<T, Box<Error>>;
+type BoxResult<T> = Result<T, Box<dyn Error>>;
 
 mod api_client;
 pub mod models;
@@ -196,7 +193,7 @@ fn add_user_id_to_config(
 ) -> BoxResult<()> {
     let value = fs::read_to_string(client_config_path.clone())?;
     let mut config: GoodReadsConfig = toml::from_str(&value)?;
-    let user_id = gr_client
+    let _user_id = gr_client
         .user_id()
         .and_then(|id| {
             config.user_id = Some(id);
@@ -235,7 +232,7 @@ fn run_command(
         }
         Cli::New { title } => {
             let mut answer = String::new();
-            let titleQuery = title.as_ref().unwrap_or_else(|| {
+            let title_query = title.as_ref().unwrap_or_else(|| {
                 println!("🔎 Enter a title to search:");
                 stdin()
                     .read_line(&mut answer)
@@ -243,7 +240,7 @@ fn run_command(
                 &answer
             });
             let res = gr_client
-                .search_books(&titleQuery, "title")
+                .search_books(&title_query, "title")
                 .and_then(|xml| {
                     models::parse_book_search_results(&xml).map_err(|err| err.to_string())
                 })
@@ -252,7 +249,8 @@ fn run_command(
                         println!("{}. {} - {}", i + 1, result.1, result.2);
                     }
                     println!("\nWhich one have you started?");
-                    let choice = ux::get_choice(1, results.len() as u32);
+                    let choice = ux::get_choice(1, results.len() as u32)
+                        .map_err(|_err| "Failed to get user choice")?;
                     let book_to_update = results
                         .get((choice as usize) - 1)
                         .expect("Should never here access an invalid index");
@@ -281,7 +279,8 @@ fn run_command(
                         println!("{}. {}", i + 1, book);
                     }
                     println!("\nWhich one have you finished?");
-                    let choice = ux::get_choice(1, shelf.books.len() as u32);
+                    let choice = ux::get_choice(1, shelf.books.len() as u32)
+                        .map_err(|_err| "Failed to get user choice")?;
                     let book_to_update = shelf
                         .books
                         .get((choice as usize) - 1)
@@ -323,7 +322,7 @@ fn run_command(
                                     t,
                                     b.title.clone(),
                                 );
-                                let confirmed = ux::get_confirm();
+                                let confirmed = ux::get_confirm()?;
                                 if confirmed {
                                     b
                                 } else {
@@ -338,7 +337,8 @@ fn run_command(
                             }
                             println!("Choose a book to update progress on:");
                             // TODO(Jonathon): Handle case where shelf has no books
-                            let choice = ux::get_choice(1, shelf.books.len() as u32);
+                            let choice = ux::get_choice(1, shelf.books.len() as u32)
+                                .map_err(|_err| "Failed to get user choice")?;
                             shelf
                                 .books
                                 .get((choice as usize) - 1)
@@ -350,7 +350,8 @@ fn run_command(
                     match book_to_update.num_pages {
                         Some(val) => {
                             println!("What page are you on now? (Max page is {}):", val);
-                            let current_page = ux::get_choice(1, val);
+                            let current_page = ux::get_choice(1, val)
+                                .map_err(|_err| "Failed to get user choice")?;
                             println!("You're on {}!", current_page);
                             gr_client
                                 .update_status(
@@ -363,7 +364,8 @@ fn run_command(
                         }
                         None => {
                             println!("What page are you on now?:");
-                            let current_page = ux::get_choice(1, 10_000);
+                            let current_page = ux::get_choice(1, 10_000)
+                                .map_err(|_err| "Failed to get user choice")?;
                             gr_client
                                 .update_status(
                                     Some(&book_to_update),
@@ -400,7 +402,7 @@ fn main() -> BoxResult<()> {
 
     let cfg: config::Config = match load_client_config(client_config_path()) {
         Ok(val) => val,
-        Err(err) => {
+        Err(_err) => {
             eprintln!(
                 "❌ - Unable to locate config at {}",
                 client_config_path().to_string_lossy()
