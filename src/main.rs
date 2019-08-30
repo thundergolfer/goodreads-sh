@@ -229,7 +229,7 @@ fn run_command(
                 Ok(_) => {
                     println!("Added ✅");
                     Ok(())
-                },
+                }
                 Err(err) => bail!("fuck: {}", err),
             }
         }
@@ -266,7 +266,7 @@ fn run_command(
                 Ok(_) => {
                     println!("✅ Nice work!");
                     Ok(())
-                },
+                }
                 Err(err) => bail!("Error: {}", err),
             }
         }
@@ -297,8 +297,8 @@ fn run_command(
                 Ok(_) => {
                     println!("✅ Nice work!");
                     Ok(())
-                },
-                Err(err) => bail!(err)
+                }
+                Err(err) => bail!(err),
             }
         }
         Cli::Update { title } => {
@@ -311,8 +311,8 @@ fn run_command(
                         Some(t) => {
                             // TODO(Jonathon): This doesn't handle 0-len shelves
                             let closest = ux::select_by_edit_distance(&shelf, &t);
-                            let b = closest.0.unwrap();
-                            let dist_from_target = closest.1.unwrap();
+                            let b = closest.0.ok_or("No books in shelf")?;
+                            let dist_from_target = closest.1.ok_or("No books in shelf")?;
                             // If what user typed and the closest book title are exactly alike (0) or only 1 char difference (1),
                             // then just assume a match. Otherwise, check that we are updating the right book.
                             if dist_from_target < 2 {
@@ -327,7 +327,7 @@ fn run_command(
                                 if confirmed {
                                     b
                                 } else {
-                                    println!("Try retyping the book title.");
+                                    println!("Try re-typing the book title.");
                                     std::process::exit(0);
                                 }
                             }
@@ -358,7 +358,8 @@ fn run_command(
                                     Some(current_page),
                                     None,
                                     None,
-                                ).map_err(|e| e.into())
+                                )
+                                .map_err(|e| e.into())
                         }
                         None => {
                             println!("What page are you on now?:");
@@ -369,7 +370,8 @@ fn run_command(
                                     Some(current_page),
                                     None,
                                     None,
-                                ).map_err(|e| e.into())
+                                )
+                                .map_err(|e| e.into())
                         }
                     }
                 }
@@ -382,14 +384,14 @@ fn run_command(
                 Ok(id) => {
                     println!("👩‍🎓 Your user id is: {}", id);
                     Ok(())
-                },
+                }
                 Err(err) => bail!("Error: {}", err),
             }
         }
         Cli::Authenticate {} => {
             println!("Already authenticated.");
             Ok(())
-        },
+        }
     }
 }
 

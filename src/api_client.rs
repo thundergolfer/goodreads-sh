@@ -5,6 +5,9 @@ use oauth_client;
 use reqwest::{Client, StatusCode};
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::error::Error;
+
+type BoxResult<T> = Result<T, Box<Error>>;
 
 pub mod goodreads_api_endpoints {
     pub const USER_ID: &'static str = "https://www.goodreads.com/api/auth_user";
