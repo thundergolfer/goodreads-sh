@@ -124,9 +124,11 @@ fn get_oauth_token(client_id: String, client_secret: String) -> BoxResult<OAuthA
     let params: HashMap<String, String> = form_urlencoded::parse(&res.as_bytes())
         .into_owned()
         .collect();
-    let request_token = params.get("oauth_token")
+    let request_token = params
+        .get("oauth_token")
         .ok_or("'request token' was missing from response during OAuth setup")?;
-    let request_token_secret = params.get("oauth_token_secret")
+    let request_token_secret = params
+        .get("oauth_token_secret")
         .ok_or("'request token secret' was missing from response during OAuth setup")?;
 
     let constructed_auth_url = format!("{}?oauth_token={}", auth_url, request_token);
@@ -156,17 +158,16 @@ fn get_oauth_token(client_id: String, client_secret: String) -> BoxResult<OAuthA
     let oauth_query_string = oauth_header_string_into_query_string(&oauth_headers);
     let token_url_with_oauth = format!("{}?{}", token_url, oauth_query_string);
 
-    let res = client
-        .get(&token_url_with_oauth)
-        .send()?
-        .text()?;
+    let res = client.get(&token_url_with_oauth).send()?.text()?;
 
     let access_token_params: HashMap<String, String> = form_urlencoded::parse(&res.as_bytes())
         .into_owned()
         .collect();
-    let access_token = access_token_params.get("oauth_token")
+    let access_token = access_token_params
+        .get("oauth_token")
         .ok_or("'access token' was missing from response during OAuth setup")?;
-    let access_token_secret = access_token_params.get("oauth_token_secret")
+    let access_token_secret = access_token_params
+        .get("oauth_token_secret")
         .ok_or("'access token secret' was missing from response during OAuth setup")?;
 
     Ok(OAuthAccessToken {
@@ -175,33 +176,36 @@ fn get_oauth_token(client_id: String, client_secret: String) -> BoxResult<OAuthA
     })
 }
 
-fn add_access_token_to_config(client_config_path: PathBuf, oauth_access_token: &OAuthAccessToken) {
-    let value = fs::read_to_string(client_config_path.clone()).unwrap();
+fn add_access_token_to_config(
+    client_config_path: PathBuf,
+    oauth_access_token: &OAuthAccessToken,
+) -> BoxResult<()> {
+    let value = fs::read_to_string(client_config_path.clone())?;
 
-    let mut config: GoodReadsConfig = toml::from_str(&value).unwrap();
+    let mut config: GoodReadsConfig = toml::from_str(&value)?;
     config.access_token = Some(oauth_access_token.token.clone());
     config.access_token_secret = Some(oauth_access_token.token_secret.clone());
 
-    let toml = toml::to_string(&config).unwrap();
-    fs::write(client_config_path, toml).unwrap();
+    let toml = toml::to_string(&config)?;
+    fs::write(client_config_path, toml).map_err(|e| e.into())
 }
 
 fn add_user_id_to_config(
     client_config_path: PathBuf,
     gr_client: &api_client::GoodreadsApiClient,
-) -> Result<(), String> {
-    let value = fs::read_to_string(client_config_path.clone()).unwrap();
-    let mut config: GoodReadsConfig = toml::from_str(&value).unwrap();
-    let user_id = gr_client.user_id();
-    match user_id {
-        Ok(id) => {
+) -> BoxResult<()> {
+    let value = fs::read_to_string(client_config_path.clone())?;
+    let mut config: GoodReadsConfig = toml::from_str(&value)?;
+    let user_id = gr_client
+        .user_id()
+        .and_then(|id| {
             config.user_id = Some(id);
-            let toml = toml::to_string(&config).unwrap();
-            fs::write(client_config_path, toml).unwrap();
-            Ok(())
-        }
-        Err(err) => Err(err),
-    }
+            toml::to_string(&config).map_err(|err| err.to_string())
+        })
+        .and_then(|toml_str| {
+            fs::write(client_config_path, toml_str).map_err(|err| err.to_string())
+        });
+    Ok(())
 }
 
 fn client_config_path() -> PathBuf {
@@ -216,14 +220,17 @@ fn run_command(
     args: &Cli,
     app_config: &GoodReadsConfig,
     gr_client: &api_client::GoodreadsApiClient,
-) {
+) -> BoxResult<()> {
     match args {
         Cli::AddToShelf {} => {
             // TODO(Jonathon): Stop hardcoding these
             let res = gr_client.add_to_shelf(9282, "to-read");
             match res {
-                Ok(_) => println!("Added ✅"),
-                Err(err) => println!("fuck: {}", err),
+                Ok(_) => {
+                    println!("Added ✅");
+                    Ok(())
+                },
+                Err(err) => bail!("fuck: {}", err),
             }
         }
         Cli::New { title } => {
@@ -256,8 +263,11 @@ fn run_command(
                     Ok(id)
                 });
             match res {
-                Ok(_) => println!("✅ Nice work!"),
-                Err(err) => print!("Error: {}", err),
+                Ok(_) => {
+                    println!("✅ Nice work!");
+                    Ok(())
+                },
+                Err(err) => bail!("Error: {}", err),
             }
         }
         Cli::Finished {} => {
@@ -284,15 +294,18 @@ fn run_command(
                 })
                 .and_then(|id| gr_client.add_to_shelf(id, "read"));
             match res {
-                Ok(_) => println!("✅ Nice work!"),
-                Err(err) => print!("Error: {}", err),
+                Ok(_) => {
+                    println!("✅ Nice work!");
+                    Ok(())
+                },
+                Err(err) => bail!(err)
             }
         }
         Cli::Update { title } => {
             let res = gr_client.list_shelf("currently-reading");
             match res {
                 Ok(shelf_xml) => {
-                    let shelf: models::Shelf = models::parse_shelf(&shelf_xml).unwrap();
+                    let shelf: models::Shelf = models::parse_shelf(&shelf_xml)?;
 
                     let book_to_update = match title {
                         Some(t) => {
@@ -345,8 +358,7 @@ fn run_command(
                                     Some(current_page),
                                     None,
                                     None,
-                                )
-                                .unwrap();
+                                ).map_err(|e| e.into())
                         }
                         None => {
                             println!("What page are you on now?:");
@@ -357,22 +369,27 @@ fn run_command(
                                     Some(current_page),
                                     None,
                                     None,
-                                )
-                                .unwrap();
+                                ).map_err(|e| e.into())
                         }
                     }
                 }
-                Err(err) => println!("fuck: {}", err),
+                Err(err) => bail!("fuck: {}", err),
             }
         }
         Cli::Me {} => {
             let user_id = gr_client.user_id();
             match user_id {
-                Ok(id) => println!("👩‍🎓 Your user id is: {}", id),
-                Err(err) => println!("Error: {}", err),
+                Ok(id) => {
+                    println!("👩‍🎓 Your user id is: {}", id);
+                    Ok(())
+                },
+                Err(err) => bail!("Error: {}", err),
             }
         }
-        Cli::Authenticate {} => println!("Already authenticated."),
+        Cli::Authenticate {} => {
+            println!("Already authenticated.");
+            Ok(())
+        },
     }
 }
 
@@ -418,17 +435,14 @@ fn main() -> BoxResult<()> {
                 &access_token_secret,
             );
 
-            run_command(&args, &app_config, &gr_client);
+            run_command(&args, &app_config, &gr_client)?;
         }
         _ => {
             match args {
                 Cli::Authenticate {} => {
-                    let oauth_access_token = get_oauth_token(
-                        dev_key.clone(),
-                        dev_secret.clone()
-                    )?;
+                    let oauth_access_token = get_oauth_token(dev_key.clone(), dev_secret.clone())?;
                     println!("Adding oauth access token to config...");
-                    add_access_token_to_config(client_config_path(), &oauth_access_token);
+                    add_access_token_to_config(client_config_path(), &oauth_access_token)?;
                     let gr_client = api_client::GoodreadsApiClient::new(
                         0, // TODO(Jonathon): This is an invalid value, though it will never be used. Still should clean this up.
                         &dev_key,
