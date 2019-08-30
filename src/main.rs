@@ -6,6 +6,7 @@ use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::error::Error;
 use std::fs;
 use std::io::stdin;
 use std::path::PathBuf;
@@ -14,6 +15,10 @@ use structopt::StructOpt;
 use url::form_urlencoded;
 
 extern crate dirs;
+#[macro_use]
+extern crate simple_error;
+
+type BoxResult<T> = Result<T,Box<Error>>;
 
 mod api_client;
 pub mod models;
@@ -64,12 +69,11 @@ struct OAuthAccessToken {
     token_secret: String,
 }
 
-fn load_client_config(config_file_path: PathBuf) -> config::Config {
+fn load_client_config(config_file_path: PathBuf) -> BoxResult<config::Config> {
     let mut settings = config::Config::default();
     settings
-        .merge(config::File::from(config_file_path))
-        .unwrap();
-    settings
+        .merge(config::File::from(config_file_path))?;
+    Ok(settings)
 }
 
 /// Goodreads.com wants OAuth content in form data for POSTs (Is this typical?)
@@ -380,8 +384,14 @@ fn run_command(
 fn main() {
     let args = Cli::from_args();
 
-    let cfg: config::Config = load_client_config(client_config_path());
-
+    let cfg: config::Config = match load_client_config(client_config_path()) {
+        Ok(val) => { val },
+        Err(err) => {
+            eprintln!("❌ - Unable to locate config at {}", client_config_path().to_string_lossy());
+            std::process::exit(1);
+        }
+    };
+    
     let dev_key: String = cfg.get_str("developer_key").unwrap();
     let dev_secret: String = cfg.get_str("developer_secret").unwrap();
     let access_token_res: Result<String, _> = cfg.get_str("access_token");
