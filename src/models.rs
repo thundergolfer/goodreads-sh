@@ -131,14 +131,16 @@ fn extract_book_id_from_book_link(book_link: &str) -> Option<u32> {
         ",
     )
     .expect("Regex should always compile");
-    re.captures(book_link).and_then(|cap| {
-        cap.name("book_id")
-            .map(|book_id| book_id.as_str())
-            .map(|book_id| book_id.parse::<u32>())
-    }).and_then(|parse_res| match parse_res {
-        Ok(num) => Some(num),
-        Err(_err) => None,
-    })
+    re.captures(book_link)
+        .and_then(|cap| {
+            cap.name("book_id")
+                .map(|book_id| book_id.as_str())
+                .map(|book_id| book_id.parse::<u32>())
+        })
+        .and_then(|parse_res| match parse_res {
+            Ok(num) => Some(num),
+            Err(_err) => None,
+        })
 }
 
 fn book_from_xml_node(node: Node) -> Book {
@@ -170,8 +172,7 @@ fn book_from_xml_node(node: Node) -> Book {
                 book.title = String::from(child_node.text().unwrap_or(""));
             }
             "num_pages" => {
-                book.num_pages = child_node.text()
-                    .and_then(|txt| txt.parse::<u32>().ok());
+                book.num_pages = child_node.text().and_then(|txt| txt.parse::<u32>().ok());
             }
             _ => {}
         }

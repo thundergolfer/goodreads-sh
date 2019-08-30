@@ -1,6 +1,6 @@
 use config;
 use oauth1::Token;
-use reqwest::{Client};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::collections::HashMap;
