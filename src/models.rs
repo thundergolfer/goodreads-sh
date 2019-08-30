@@ -182,10 +182,10 @@ fn book_from_xml_node(node: Node) -> Book {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use super::*;
     use std::fs;
     use std::io::prelude::*;
-    use super::*;
+    use std::path::PathBuf;
 
     #[allow(dead_code)]
     fn load_file(path: &PathBuf) -> String {
