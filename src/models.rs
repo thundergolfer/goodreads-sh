@@ -182,8 +182,12 @@ fn book_from_xml_node(node: Node) -> Book {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+    use std::fs;
+    use std::io::prelude::*;
     use super::*;
 
+    #[allow(dead_code)]
     fn load_file(path: &PathBuf) -> String {
         let mut file = fs::File::open(&path).unwrap();
         let mut text = String::new();

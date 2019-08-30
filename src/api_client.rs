@@ -268,6 +268,7 @@ fn make_oauthd_request(
 pub struct Percentage(u8);
 
 impl Percentage {
+    #[allow(dead_code)]
     pub fn new(x: u8) -> Option<Percentage> {
         if x <= 100 {
             Some(Percentage(x))
