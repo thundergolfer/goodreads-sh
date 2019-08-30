@@ -18,7 +18,7 @@ extern crate dirs;
 #[macro_use]
 extern crate simple_error;
 
-type BoxResult<T> = Result<T,Box<Error>>;
+type BoxResult<T> = Result<T, Box<Error>>;
 
 mod api_client;
 pub mod models;
@@ -71,8 +71,7 @@ struct OAuthAccessToken {
 
 fn load_client_config(config_file_path: PathBuf) -> BoxResult<config::Config> {
     let mut settings = config::Config::default();
-    settings
-        .merge(config::File::from(config_file_path))?;
+    settings.merge(config::File::from(config_file_path))?;
     Ok(settings)
 }
 
@@ -104,7 +103,7 @@ fn oauth_header_string_into_query_string(oauth_header: &str) -> String {
     cleaned_pairs.join("&")
 }
 
-fn get_oauth_token(client_id: String, client_secret: String) -> OAuthAccessToken {
+fn get_oauth_token(client_id: String, client_secret: String) -> BoxResult<OAuthAccessToken> {
     let auth_url = "https://www.goodreads.com/oauth/authorize";
     let request_token_url = "https://www.goodreads.com/oauth/request_token";
     let token_url = "https://www.goodreads.com/oauth/access_token";
@@ -120,31 +119,28 @@ fn get_oauth_token(client_id: String, client_secret: String) -> OAuthAccessToken
             reqwest::header::AUTHORIZATION,
             oauth1::authorize("GET", request_token_url, &consumer_token, None, None),
         )
-        .send()
-        .unwrap()
-        .text()
-        .unwrap();
+        .send()?
+        .text()?;
     let params: HashMap<String, String> = form_urlencoded::parse(&res.as_bytes())
         .into_owned()
         .collect();
-    let request_token = params.get("oauth_token").unwrap();
-    let request_token_secret = params.get("oauth_token_secret").unwrap();
+    let request_token = params.get("oauth_token")
+        .ok_or("'request token' was missing from response during OAuth setup")?;
+    let request_token_secret = params.get("oauth_token_secret")
+        .ok_or("'request token secret' was missing from response during OAuth setup")?;
 
     let constructed_auth_url = format!("{}?oauth_token={}", auth_url, request_token);
 
     println!("Visit this URL in the browser: {}", constructed_auth_url);
-
     println!("Have you authorised in the browser?: y/n");
 
     loop {
         let mut answer = String::new();
-
         stdin()
             .read_line(&mut answer)
             .expect("Failed to read the line");
-
         if answer.trim() == "y" {
-            println!("Thankyou. Finishing authentication process...");
+            println!("Thank you. Finishing authentication process...");
             break;
         }
     }
@@ -158,26 +154,25 @@ fn get_oauth_token(client_id: String, client_secret: String) -> OAuthAccessToken
     );
 
     let oauth_query_string = oauth_header_string_into_query_string(&oauth_headers);
-
     let token_url_with_oauth = format!("{}?{}", token_url, oauth_query_string);
 
     let res = client
         .get(&token_url_with_oauth)
-        .send()
-        .unwrap()
-        .text()
-        .unwrap();
+        .send()?
+        .text()?;
 
     let access_token_params: HashMap<String, String> = form_urlencoded::parse(&res.as_bytes())
         .into_owned()
         .collect();
-    let access_token = access_token_params.get("oauth_token").unwrap();
-    let access_token_secret = access_token_params.get("oauth_token_secret").unwrap();
+    let access_token = access_token_params.get("oauth_token")
+        .ok_or("'access token' was missing from response during OAuth setup")?;
+    let access_token_secret = access_token_params.get("oauth_token_secret")
+        .ok_or("'access token secret' was missing from response during OAuth setup")?;
 
-    OAuthAccessToken {
+    Ok(OAuthAccessToken {
         token: access_token.to_owned(),
         token_secret: access_token_secret.to_owned(),
-    }
+    })
 }
 
 fn add_access_token_to_config(client_config_path: PathBuf, oauth_access_token: &OAuthAccessToken) {
@@ -381,20 +376,25 @@ fn run_command(
     }
 }
 
-fn main() -> Result<(),String> {
+fn main() -> BoxResult<()> {
     let args = Cli::from_args();
 
     let cfg: config::Config = match load_client_config(client_config_path()) {
-        Ok(val) => { val },
+        Ok(val) => val,
         Err(err) => {
-            eprintln!("❌ - Unable to locate config at {}", client_config_path().to_string_lossy());
+            eprintln!(
+                "❌ - Unable to locate config at {}",
+                client_config_path().to_string_lossy()
+            );
             std::process::exit(1);
         }
     };
 
-    let dev_key: String = cfg.get_str("developer_key")
+    let dev_key: String = cfg
+        .get_str("developer_key")
         .map_err(|err| err.to_string())?;
-    let dev_secret: String = cfg.get_str("developer_secret")
+    let dev_secret: String = cfg
+        .get_str("developer_secret")
         .map_err(|err| err.to_string())?;
 
     let access_token_res: Result<String, _> = cfg.get_str("access_token");
@@ -423,7 +423,10 @@ fn main() -> Result<(),String> {
         _ => {
             match args {
                 Cli::Authenticate {} => {
-                    let oauth_access_token = get_oauth_token(dev_key.clone(), dev_secret.clone());
+                    let oauth_access_token = get_oauth_token(
+                        dev_key.clone(),
+                        dev_secret.clone()
+                    )?;
                     println!("Adding oauth access token to config...");
                     add_access_token_to_config(client_config_path(), &oauth_access_token);
                     let gr_client = api_client::GoodreadsApiClient::new(
