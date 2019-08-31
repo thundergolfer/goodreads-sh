@@ -377,7 +377,7 @@ fn run_command(
                         }
                     }
                 }
-                Err(err) => bail!("fuck: {}", err),
+                Err(err) => bail!("❌ Failed to update: {}", err),
             }
         }
         Cli::Me {} => {
@@ -387,7 +387,7 @@ fn run_command(
                     println!("👩‍🎓 Your user id is: {}", id);
                     Ok(())
                 }
-                Err(err) => bail!("Error: {}", err),
+                Err(err) => bail!("❌ Error: {}", err),
             }
         }
         Cli::Authenticate {} => {
@@ -457,10 +457,10 @@ fn main() -> BoxResult<()> {
                     println!("Adding your user id to config...");
                     match add_user_id_to_config(client_config_path(), &gr_client) {
                         Ok(_) => println!("✅"),
-                        Err(err) => println!("Error: {}", err),
+                        Err(err) => println!("❌ Error: {}", err),
                     }
                 }
-                _ => println!("OAuth not set up. Please run: goodreads-sh auth"),
+                _ => println!("❗️ OAuth not set up. Please run: goodreads-sh auth"),
             }
         }
     }
