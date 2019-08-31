@@ -89,11 +89,9 @@ impl GoodreadsApiClient {
         match res {
             Ok(mut resp) => match resp.status() {
                 StatusCode::OK => {
-                    let txt = resp.text().unwrap_or_else(|err| {
-                        return err.to_string()
-                    });
+                    let txt = resp.text().unwrap_or_else(|err| return err.to_string());
                     Ok(txt)
-                },
+                }
                 _ => Err(format!("Request failed. Status code: {}", resp.status())),
             },
             Err(err) => Err(format!("Request failed: {}", err)),
