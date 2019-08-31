@@ -132,13 +132,9 @@ fn get_oauth_token(client_id: String, client_secret: String) -> BoxResult<OAuthA
 
     println!("Visit this URL in the browser: {}", constructed_auth_url);
     println!("Have you authorised in the browser?: y/n");
-
     loop {
-        let mut answer = String::new();
-        stdin()
-            .read_line(&mut answer)
-            .expect("Failed to read the line");
-        if answer.trim() == "y" {
+        let confirmed = ux::get_confirm()?;
+        if confirmed {
             println!("Thank you. Finishing authentication process...");
             break;
         }
