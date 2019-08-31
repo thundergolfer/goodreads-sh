@@ -62,8 +62,10 @@ FLAGS:
 SUBCOMMANDS:
     add-to-shelf    Add a book to an existing shelf [In Progress]
     auth            Setup OAuth for the CLI (1 time only)
+    finished        Tell Goodreads you've finished a book you're currently reading
     help            Prints this message or the help of the given subcommand(s)
     me              Show your User ID
+    new             Tell Goodreads you've started a new book
     update          Update progress on a book you're currently reading
 ```
 
