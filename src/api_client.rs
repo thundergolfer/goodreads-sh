@@ -88,7 +88,12 @@ impl GoodreadsApiClient {
 
         match res {
             Ok(mut resp) => match resp.status() {
-                StatusCode::OK => Ok(resp.text().unwrap()),
+                StatusCode::OK => {
+                    let txt = resp.text().unwrap_or_else(|err| {
+                        return err.to_string()
+                    });
+                    Ok(txt)
+                },
                 _ => Err(format!("Request failed. Status code: {}", resp.status())),
             },
             Err(err) => Err(format!("Request failed: {}", err)),
@@ -106,7 +111,10 @@ impl GoodreadsApiClient {
         match res {
             Ok(mut resp) => match resp.status() {
                 StatusCode::OK => {
-                    let resp_xml = resp.text().unwrap();
+                    let resp_xml = resp.text().unwrap_or(format!(
+                        "Could not decode response text from {}",
+                        goodreads_api_endpoints::USER_ID
+                    ));
                     let doc = match roxmltree::Document::parse(&resp_xml) {
                         Ok(doc) => doc,
                         Err(e) => {
