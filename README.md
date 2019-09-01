@@ -60,9 +60,9 @@ FLAGS:
     -V, --version    Prints version information
 
 SUBCOMMANDS:
-    add-to-shelf    Add a book to an existing shelf [In Progress]
+    add-to-shelf    Add a book to an existing shelf (eg. currently-reading, to-read)
     auth            Setup OAuth for the CLI (1 time only)
-    finished        Tell Goodreads you've finished a book you're currently reading
+    finished        Tell Goodreads you've finished a book that you're currently reading
     help            Prints this message or the help of the given subcommand(s)
     me              Show your User ID
     new             Tell Goodreads you've started a new book
