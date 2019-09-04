@@ -7,11 +7,11 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 
 pub mod goodreads_api_endpoints {
-    pub const USER_ID: &'static str = "https://www.goodreads.com/api/auth_user";
-    pub const LIST_SHELF: &'static str = "https://www.goodreads.com/review/list?v=2";
-    pub const ADD_TO_SHELF: &'static str = "https://www.goodreads.com/shelf/add_to_shelf.xml";
-    pub const UPDATE_STATUS: &'static str = "https://www.goodreads.com/user_status.json";
-    pub const SEARCH_BOOKS: &'static str = "https://www.goodreads.com/search/index.xml";
+    pub const USER_ID: &str = "https://www.goodreads.com/api/auth_user";
+    pub const LIST_SHELF: &str = "https://www.goodreads.com/review/list?v=2";
+    pub const ADD_TO_SHELF: &str = "https://www.goodreads.com/shelf/add_to_shelf.xml";
+    pub const UPDATE_STATUS: &str = "https://www.goodreads.com/user_status.json";
+    pub const SEARCH_BOOKS: &str = "https://www.goodreads.com/search/index.xml";
 }
 
 #[derive(Serialize, Deserialize)]
@@ -89,7 +89,7 @@ impl GoodreadsApiClient {
         match res {
             Ok(mut resp) => match resp.status() {
                 StatusCode::OK => {
-                    let txt = resp.text().unwrap_or_else(|err| return err.to_string());
+                    let txt = resp.text().unwrap_or_else(|err| err.to_string());
                     Ok(txt)
                 }
                 _ => Err(format!("Request failed. Status code: {}", resp.status())),
@@ -109,10 +109,12 @@ impl GoodreadsApiClient {
         match res {
             Ok(mut resp) => match resp.status() {
                 StatusCode::OK => {
-                    let resp_xml = resp.text().unwrap_or(format!(
-                        "Could not decode response text from {}",
-                        goodreads_api_endpoints::USER_ID
-                    ));
+                    let resp_xml = resp.text().unwrap_or_else(|_| {
+                        format!(
+                            "Could not decode response text from {}",
+                            goodreads_api_endpoints::USER_ID
+                        )
+                    });
                     let doc = match roxmltree::Document::parse(&resp_xml) {
                         Ok(doc) => doc,
                         Err(e) => {

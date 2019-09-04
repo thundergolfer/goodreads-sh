@@ -86,7 +86,7 @@ fn oauth_header_string_to_form_data(oauth_header: &str) -> Vec<(String, String)>
     let mut form_data: Vec<(String, String)> = Vec::new();
 
     for key_val_pair in oauth_header.split(", ") {
-        tokens = key_val_pair.split("=").collect();
+        tokens = key_val_pair.split('=').collect();
         // Remove quotes from value
         let val_len = tokens[1].len();
         tokens[1] = &tokens[1][1..val_len - 1];
@@ -454,10 +454,8 @@ fn main() -> BoxResult<()> {
         }
     };
 
-    let dev_key = cfg
-        .get_str("developer_key")?;
-    let dev_secret = cfg
-        .get_str("developer_secret")?;
+    let dev_key = cfg.get_str("developer_key")?;
+    let dev_secret = cfg.get_str("developer_secret")?;
 
     let access_token_res: Result<String, _> = cfg.get_str("access_token");
     let access_token_secret_res: Result<String, _> = cfg.get_str("access_token_secret");
