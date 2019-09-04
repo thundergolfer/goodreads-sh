@@ -11,6 +11,8 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 use url::form_urlencoded;
 
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
+
 extern crate dirs;
 #[macro_use]
 extern crate simple_error;
@@ -105,7 +107,7 @@ fn oauth_header_string_into_query_string(oauth_header: &str) -> String {
     cleaned_pairs.join("&")
 }
 
-fn get_oauth_token(client_id: String, client_secret: String) -> BoxResult<OAuthAccessToken> {
+fn get_oauth_token(client_id: &str, client_secret: &str) -> BoxResult<OAuthAccessToken> {
     let auth_url = "https://www.goodreads.com/oauth/authorize";
     let request_token_url = "https://www.goodreads.com/oauth/request_token";
     let token_url = "https://www.goodreads.com/oauth/access_token";
@@ -158,19 +160,19 @@ fn get_oauth_token(client_id: String, client_secret: String) -> BoxResult<OAuthA
 
     let res = client.get(&token_url_with_oauth).send()?.text()?;
 
-    let access_token_params: HashMap<String, String> = form_urlencoded::parse(&res.as_bytes())
+    let mut access_token_params: HashMap<String, String> = form_urlencoded::parse(&res.as_bytes())
         .into_owned()
         .collect();
     let access_token = access_token_params
-        .get("oauth_token")
+        .remove("oauth_token")
         .ok_or("'access token' was missing from response during OAuth setup")?;
     let access_token_secret = access_token_params
-        .get("oauth_token_secret")
+        .remove("oauth_token_secret")
         .ok_or("'access token secret' was missing from response during OAuth setup")?;
 
     Ok(OAuthAccessToken {
-        token: access_token.to_owned(),
-        token_secret: access_token_secret.to_owned(),
+        token: access_token,
+        token_secret: access_token_secret,
     })
 }
 
@@ -372,7 +374,11 @@ fn run_command(
                             for (i, book) in shelf.books.iter().enumerate() {
                                 println!("{}. {}", i + 1, book);
                             }
+                            let mut stdout = StandardStream::stdout(ColorChoice::Always);
+                            stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)))?;
                             println!("Choose a book to update progress on:");
+                            stdout.reset()?;
+
                             // TODO(Jonathon): Handle case where shelf has no books
                             let choice = ux::get_choice(1, shelf.books.len() as u32)
                                 .map_err(|_err| "Failed to get user choice")?;
@@ -448,12 +454,10 @@ fn main() -> BoxResult<()> {
         }
     };
 
-    let dev_key: String = cfg
-        .get_str("developer_key")
-        .map_err(|err| err.to_string())?;
-    let dev_secret: String = cfg
-        .get_str("developer_secret")
-        .map_err(|err| err.to_string())?;
+    let dev_key = cfg
+        .get_str("developer_key")?;
+    let dev_secret = cfg
+        .get_str("developer_secret")?;
 
     let access_token_res: Result<String, _> = cfg.get_str("access_token");
     let access_token_secret_res: Result<String, _> = cfg.get_str("access_token_secret");
@@ -481,7 +485,7 @@ fn main() -> BoxResult<()> {
         _ => {
             match args {
                 Cli::Authenticate {} => {
-                    let oauth_access_token = get_oauth_token(dev_key.clone(), dev_secret.clone())?;
+                    let oauth_access_token = get_oauth_token(&dev_key, &dev_secret)?;
                     println!("Adding oauth access token to config...");
                     add_access_token_to_config(client_config_path(), &oauth_access_token)?;
                     let gr_client = api_client::GoodreadsApiClient::new(
