@@ -182,7 +182,7 @@ impl GoodreadsApiClient {
 
         match res {
             Ok(mut _resp) => {
-//                println!("Updated: {}", resp.text().unwrap());
+                //                println!("Updated: {}", resp.text().unwrap());
                 Ok(())
             }
             Err(err) => Err(format!("Request failed: {}", err)),
