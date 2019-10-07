@@ -20,8 +20,6 @@
 
 ## Installation
 
-> ❗️ **Note:** This project is currently in *Alpha* stages of development. Installation not recommended until `1.0` release is out.
-
 #### Homebrew
 
 Easiest way to install on macOS is by using [Homebrew](https://brew.sh/).
