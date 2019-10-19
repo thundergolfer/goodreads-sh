@@ -29,7 +29,9 @@ matrix:
 
     - name: Tests
       env: RUST_BACKTRACE=1
-      rust: nightly
+      # Pin temporarily because rustfmt is not available in nightly
+      # Ref: https://github.com/rust-lang/rustup.rs/issues/1566
+      rust: nightly-2019-10-04
       addons:
         firefox: latest
         chrome: stable
