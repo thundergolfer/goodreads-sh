@@ -26,8 +26,14 @@ pub struct Author {
 
 impl Display for Book {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let shortened_desc = &self.description[..MAX_DESC_LEN];
-        write!(f, "{}: {}...", self.title, shortened_desc)
+        match self.description.len() {
+            0 => write!(f, "{}", self.title),
+            1..=MAX_DESC_LEN => write!(f, "{}: {}...", self.title, self.description),
+            _ => {
+                let shortened_desc = &self.description[..MAX_DESC_LEN];
+                write!(f, "{}: {}...", self.title, shortened_desc)
+            }
+        }
     }
 }
 
