@@ -7,7 +7,7 @@ use super::ux;
 
 type BoxResult<T> = Result<T, Box<dyn Error>>;
 
-pub fn view_shelf(
+pub fn view_books_on_shelf(
     shelf: &Option<String>,
     gr_client: &api_client::GoodreadsApiClient,
 ) -> BoxResult<()> {
