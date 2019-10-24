@@ -19,3 +19,6 @@
 
 # Intellij
 .idea
+
+# VSCode
+.vscode

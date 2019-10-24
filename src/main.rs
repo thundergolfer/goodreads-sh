@@ -28,6 +28,12 @@ mod ux;
 #[structopt(name = "goodreads-sh", about = "CLI interface to Goodreads.com")]
 #[structopt(raw(setting = "structopt::clap::AppSettings::ColoredHelp"))]
 enum Cli {
+    #[structopt(name = "view-shelf")]
+    /// View the books on one of your shelves
+    ViewShelf {
+        #[structopt(short = "s", long = "shelf")]
+        shelf: Option<String>,
+    },
     #[structopt(name = "add-to-shelf")]
     /// Add a book to an existing shelf (eg. currently-reading, to-read)
     AddToShelf {
@@ -219,10 +225,11 @@ fn client_config_path() -> PathBuf {
 
 fn run_command(
     args: &Cli,
-    app_config: &GoodReadsConfig,
+    _app_config: &GoodReadsConfig,
     gr_client: &api_client::GoodreadsApiClient,
 ) -> BoxResult<()> {
     match args {
+        Cli::ViewShelf { shelf } => actions::view_shelf(shelf, gr_client),
         Cli::AddToShelf { shelf, title } => actions::add_to_shelf(shelf, title, gr_client),
         Cli::New { title } => {
             let mut answer = String::new();

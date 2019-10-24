@@ -7,6 +7,31 @@ use super::ux;
 
 type BoxResult<T> = Result<T, Box<dyn Error>>;
 
+pub fn view_shelf(
+    shelf: &Option<String>,
+    gr_client: &api_client::GoodreadsApiClient,
+) -> BoxResult<()> {
+    let mut shelf_answer = String::new();
+    let target_shelf = shelf.as_ref().unwrap_or_else(|| {
+        println!("❓: Which shelf would you like view");
+        stdin()
+            .read_line(&mut shelf_answer)
+            .expect("Failed to read your input");
+        &shelf_answer
+    });
+    let res = gr_client.list_shelf(&target_shelf);
+    match res {
+        Ok(shelf_xml) => {
+            let shelf: models::Shelf = models::parse_shelf(&shelf_xml)?;
+            for (i, book) in shelf.books.iter().enumerate() {
+                println!("{}. {}", i + 1, book);
+            }
+            Ok(())
+        }
+        Err(err) => bail!("Error: {}", err),
+    }
+}
+
 pub fn add_to_shelf(
     shelf: &Option<String>,
     title: &Option<String>,
