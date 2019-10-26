@@ -5,7 +5,8 @@ use roxmltree::Node;
 
 const MAX_DESC_LEN: usize = 20;
 
-/// This struct only display
+/// This struct is only uses during LIST requests for the names of the currently existing shelves
+/// for a user. It is different from the Shelf struct which contains which books are actually on a shelf
 #[derive(Debug, Default)]
 pub struct UserShelf {
     pub id: String,
