@@ -8,6 +8,7 @@ use std::collections::HashMap;
 
 pub mod goodreads_api_endpoints {
     pub const USER_ID: &str = "https://www.goodreads.com/api/auth_user";
+    pub const LIST_SHELVES: &str = "https://www.goodreads.com/shelf/list.xml";
     pub const LIST_SHELF: &str = "https://www.goodreads.com/review/list?v=2";
     pub const ADD_TO_SHELF: &str = "https://www.goodreads.com/shelf/add_to_shelf.xml";
     pub const UPDATE_STATUS: &str = "https://www.goodreads.com/user_status.json";
@@ -217,6 +218,32 @@ impl GoodreadsApiClient {
         }
     }
 
+    pub fn list_shelves(&self) -> Result<String, String> {
+        let mut req_params = HashMap::new();
+        let _ = req_params.insert(Cow::from("id"), Cow::from(self.user_id.to_string()));
+        let _ = req_params.insert(Cow::from("key"), Cow::from(self.auth.developer_key.clone()));
+
+        let res = make_oauthd_request(
+            self,
+            reqwest::Method::GET,
+            goodreads_api_endpoints::LIST_SHELVES,
+            Some(&req_params),
+        );
+
+        match res {
+            Ok(mut resp) => {
+                if resp.status() == StatusCode::OK {
+                    Ok(resp.text().unwrap())
+                } else {
+                    Err(format!(
+                        "Request failed. Response status: {}",
+                        resp.status()
+                    ))
+                }
+            }
+            Err(err) => Err(format!("Request failed: {}", err)),
+        }
+    }
     pub fn new(
         user_id: u32,
         developer_key: &str,

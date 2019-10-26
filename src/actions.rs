@@ -7,6 +7,34 @@ use super::ux;
 
 type BoxResult<T> = Result<T, Box<dyn Error>>;
 
+pub fn display_shelves(gr_client: &api_client::GoodreadsApiClient) -> BoxResult<()>{
+    match get_user_shelves(gr_client){
+        Ok(shelves) => {
+            if shelves.len() == 0 {
+                return Ok(());
+            }
+            println!(" 📚 : Shelves:");
+            for shelf in shelves.iter() {
+                println!("- {}", shelf.name);
+            }
+            Ok(())
+        },
+        Err(err) => bail!("Error: {}", err),
+    }
+}
+
+pub fn get_user_shelves(gr_client: &api_client::GoodreadsApiClient) -> Result<Vec<models::UserShelf>, String> {
+    let res = gr_client.list_shelves().and_then(|xml| {
+        match models::parse_shelves(&xml) {
+            Ok(shelves) => Ok(shelves),
+            Err(err) => Err(format!("Error: {:?}", err)),
+        }
+    });
+    match res {
+        Ok(shelves) => Ok(shelves),
+        Err(err) => Err(err.to_string()),
+    }
+}
 pub fn add_to_shelf(
     shelf: &Option<String>,
     title: &Option<String>,
@@ -16,11 +44,14 @@ pub fn add_to_shelf(
     let mut title_answer = String::new();
     let target_shelf = shelf.as_ref().unwrap_or_else(|| {
         println!("❓: Which shelf would you like to add the book to?");
+        display_shelves(gr_client).expect("Failed to display shelves");
+
         stdin()
             .read_line(&mut shelf_answer)
             .expect("Failed to read your input");
         &shelf_answer
     });
+    println!("Selected shelf: {}", target_shelf);
     let title_query = title.as_ref().unwrap_or_else(|| {
         println!("🔎 What's the title of the book?");
         stdin()

@@ -5,6 +5,13 @@ use roxmltree::Node;
 
 const MAX_DESC_LEN: usize = 20;
 
+/// This struct only display
+#[derive(Debug, Default)]
+pub struct UserShelf {
+    pub id: String,
+    pub name: String,
+}
+
 pub struct Shelf {
     pub books: Vec<Book>,
 }
@@ -123,6 +130,24 @@ pub fn parse_shelf(shelf_xml: &str) -> Result<Shelf, roxmltree::Error> {
     Ok(Shelf { books })
 }
 
+pub fn parse_shelves(shelves_xml: &str) -> Result<Vec<UserShelf>, roxmltree::Error> {
+    let mut user_shelves: Vec<UserShelf> = Vec::new();
+    let doc = match roxmltree::Document::parse(shelves_xml){
+        Ok(doc) => doc,
+        Err(e) => {
+            println!("Error: {}", e);
+            return Err(e);
+        }
+    };
+
+    for node in doc.descendants(){
+        if node.is_element() && node.has_tag_name("user_shelf") {
+            user_shelves.push(user_shelf_from_xml_node(node));
+        }
+    }
+
+    Ok(user_shelves)
+}
 /// For some insane reason the 'id' field that appears in the XML is NOT
 /// the id value that you want to use in API calls.
 /// The usable ID value can only be found in URLs in the XML object.
@@ -147,6 +172,18 @@ fn extract_book_id_from_book_link(book_link: &str) -> Option<u32> {
             Ok(num) => Some(num),
             Err(_err) => None,
         })
+}
+
+fn user_shelf_from_xml_node(node: Node) -> UserShelf {
+    let mut us = UserShelf::default();
+    for child_node in node.descendants(){
+        match child_node.tag_name().name(){
+            "id" => us.id = child_node.text().expect("Expected ID node in user_shelf node").to_owned(),
+            "name" => us.name = child_node.text().expect("Expected name node in user_shelf node").to_owned(),
+            _ => {}
+        }
+    }
+    us
 }
 
 fn book_from_xml_node(node: Node) -> Book {
@@ -209,6 +246,21 @@ mod tests {
     //        let text = load_file(&path);
     //        parse_shelf(&text);
     //    }
+
+       #[test]
+       fn test_parse_user_shelves() {
+           let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+           path.push("src/api_responses/user_shelves_resp.xml");
+           println!("{}", path.display());
+           let text = load_file(&path);
+           let shelves = parse_shelves(&text).expect("Failed parsing user_shelves_resp.xml");
+           assert_eq!(shelves.len(), 3);
+
+           let shelf_names = vec!("read", "currently-reading", "to-read");
+           for (i, shelf) in  shelves.iter().enumerate() {
+               assert_eq!(shelf.name, shelf_names[i]);
+           }
+       }
 
     #[test]
     fn test_extract_book_id_from_book_link() {
