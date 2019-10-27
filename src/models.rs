@@ -133,7 +133,7 @@ pub fn parse_shelf(shelf_xml: &str) -> Result<Shelf, roxmltree::Error> {
 
 pub fn parse_shelves(shelves_xml: &str) -> Result<Vec<UserShelf>, roxmltree::Error> {
     let mut user_shelves: Vec<UserShelf> = Vec::new();
-    let doc = match roxmltree::Document::parse(shelves_xml){
+    let doc = match roxmltree::Document::parse(shelves_xml) {
         Ok(doc) => doc,
         Err(e) => {
             println!("Error: {}", e);
@@ -141,7 +141,7 @@ pub fn parse_shelves(shelves_xml: &str) -> Result<Vec<UserShelf>, roxmltree::Err
         }
     };
 
-    for node in doc.descendants(){
+    for node in doc.descendants() {
         if node.is_element() && node.has_tag_name("user_shelf") {
             user_shelves.push(user_shelf_from_xml_node(node));
         }
@@ -177,10 +177,20 @@ fn extract_book_id_from_book_link(book_link: &str) -> Option<u32> {
 
 fn user_shelf_from_xml_node(node: Node) -> UserShelf {
     let mut us = UserShelf::default();
-    for child_node in node.descendants(){
-        match child_node.tag_name().name(){
-            "id" => us.id = child_node.text().expect("Expected ID node in user_shelf node").to_owned(),
-            "name" => us.name = child_node.text().expect("Expected name node in user_shelf node").to_owned(),
+    for child_node in node.descendants() {
+        match child_node.tag_name().name() {
+            "id" => {
+                us.id = child_node
+                    .text()
+                    .expect("Expected ID node in user_shelf node")
+                    .to_owned()
+            }
+            "name" => {
+                us.name = child_node
+                    .text()
+                    .expect("Expected name node in user_shelf node")
+                    .to_owned()
+            }
             _ => {}
         }
     }
@@ -248,20 +258,20 @@ mod tests {
     //        parse_shelf(&text);
     //    }
 
-       #[test]
-       fn test_parse_user_shelves() {
-           let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-           path.push("src/api_responses/user_shelves_resp.xml");
-           println!("{}", path.display());
-           let text = load_file(&path);
-           let shelves = parse_shelves(&text).expect("Failed parsing user_shelves_resp.xml");
-           assert_eq!(shelves.len(), 3);
+    #[test]
+    fn test_parse_user_shelves() {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("src/api_responses/user_shelves_resp.xml");
+        println!("{}", path.display());
+        let text = load_file(&path);
+        let shelves = parse_shelves(&text).expect("Failed parsing user_shelves_resp.xml");
+        assert_eq!(shelves.len(), 3);
 
-           let shelf_names = vec!("read", "currently-reading", "to-read");
-           for (i, shelf) in  shelves.iter().enumerate() {
-               assert_eq!(shelf.name, shelf_names[i]);
-           }
-       }
+        let shelf_names = vec!["read", "currently-reading", "to-read"];
+        for (i, shelf) in shelves.iter().enumerate() {
+            assert_eq!(shelf.name, shelf_names[i]);
+        }
+    }
 
     #[test]
     fn test_extract_book_id_from_book_link() {

@@ -7,8 +7,8 @@ use super::ux;
 
 type BoxResult<T> = Result<T, Box<dyn Error>>;
 
-pub fn display_shelves(gr_client: &api_client::GoodreadsApiClient) -> BoxResult<()>{
-    match get_user_shelves(gr_client){
+pub fn display_shelves(gr_client: &api_client::GoodreadsApiClient) -> BoxResult<()> {
+    match get_user_shelves(gr_client) {
         Ok(shelves) => {
             if shelves.len() == 0 {
                 return Ok(());
@@ -18,18 +18,20 @@ pub fn display_shelves(gr_client: &api_client::GoodreadsApiClient) -> BoxResult<
                 println!("- {}", shelf.name);
             }
             Ok(())
-        },
+        }
         Err(err) => bail!("Error: {}", err),
     }
 }
 
-pub fn get_user_shelves(gr_client: &api_client::GoodreadsApiClient) -> Result<Vec<models::UserShelf>, String> {
-    let res = gr_client.list_shelves().and_then(|xml| {
-        match models::parse_shelves(&xml) {
+pub fn get_user_shelves(
+    gr_client: &api_client::GoodreadsApiClient,
+) -> Result<Vec<models::UserShelf>, String> {
+    let res = gr_client
+        .list_shelves()
+        .and_then(|xml| match models::parse_shelves(&xml) {
             Ok(shelves) => Ok(shelves),
             Err(err) => Err(format!("Error: {:?}", err)),
-        }
-    });
+        });
     match res {
         Ok(shelves) => Ok(shelves),
         Err(err) => Err(err.to_string()),
