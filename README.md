@@ -1,3 +1,13 @@
+### 🚨 Notice 🚨
+
+Just read an email from Goodreads.com that said:
+
+> "As of December 8th 2020, Goodreads will no longer issue new developer keys for our public developer API and plans to retire these tools."
+
+So looks like this CLI will become non-functional soon, and is currently non-functional to any new users. _Thanks a lot Goodreads._
+
+----
+
 <h1 align="center">goodreads-sh</h1>
 <p align="center">
     <a href="https://travis-ci.com/thundergolfer/goodreads-sh">
